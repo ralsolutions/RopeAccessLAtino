@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>RAL · Rope Access Latino Community</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg-deep:#080c14; --bg:#0c1220; --bg-panel:#111827; --bg-raised:#1a2332; --bg-sunken:#0a0f1a;
+  --bg-input:#141c2b; --bg-hover:#1e293b;
+  --border:#1e2d3d; --border-strong:#2a3f55; --border-glow:rgba(34,211,238,0.15);
+  --text:#e8edf5; --text-muted:#8a9bb5; --text-dim:#5a6f8a; --text-faint:#3a4d65;
+  --green:#22c55e; --red:#ef4444; --yellow:#eab308; --blue:#60a5fa; --cyan:#22d3ee;
+  --brand-green:#2ecc40; --brand-red:#e74c3c; --brand-yellow:#f1c40f; --brand-blue:#6cb4ee; --brand-pink:#e84393;
+  --accent:#22d3ee; --accent-hover:#67e8f9; --accent-bg:rgba(34,211,238,0.08); --accent-text:#67e8f9;
+  --success:#22c55e; --success-bg:rgba(34,197,94,0.1);
+  --warn:#eab308; --warn-bg:rgba(234,179,8,0.1);
+  --danger:#ef4444; --danger-bg:rgba(239,68,68,0.1);
+  --member:#a78bfa; --member-bg:rgba(167,139,250,0.1);
+  --rainbow:linear-gradient(135deg, #2ecc40 0%, #e74c3c 25%, #f1c40f 50%, #6cb4ee 75%, #e84393 100%);
+  --shadow-sm:0 1px 3px rgba(0,0,0,0.4); --shadow-md:0 4px 12px rgba(0,0,0,0.5); --shadow-lg:0 8px 32px rgba(0,0,0,0.6);
+  --shadow-glow:0 0 20px rgba(34,211,238,0.1);
+  --radius:8px; --radius-lg:12px; --radius-xl:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'DM Sans','Outfit',sans-serif;background:var(--bg-deep);color:var(--text);-webkit-font-smoothing:antialiased;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--text-dim);}
+input,textarea,select,button{font-family:'DM Sans',sans-serif;}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)!important;box-shadow:0 0 0 2px rgba(34,211,238,0.15)!important;}
+::selection{background:rgba(34,211,238,0.3);}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-12px);}to{opacity:1;transform:translateX(0);}}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
+@keyframes rainbowBorder{0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;}}
+.fade-in{animation:fadeIn 0.25s ease-out;}
+.slide-in{animation:slideIn 0.2s ease-out;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef,useMemo,useCallback} = React;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DATA LAYER — all storage calls isolated for easy Supabase migration
+// ═══════════════════════════════════════════════════════════════════════════
+const DB = {
+  _get(k, fallback) { try { const v = localStorage.getItem('ral-community-'+k); return v ? JSON.parse(v) : fallback; } catch { return fallback; } },
+  _set(k, v) { try { localStorage.setItem('ral-community-'+k, JSON.stringify(v)); } catch {} },
+  getUser() { return this._get('user', null); },
+  setUser(u) { this._set('user', u); },
+  getData() { return this._get('data-v1', null); },
+  setData(d) { this._set('data-v1', d); },
+  getPosts() { return this._get('posts', {}); },
+  setPosts(p) { this._set('posts', p); },
+  getComments() { return this._get('comments', {}); },
+  setComments(c) { this._set('comments', c); },
+  getMarketplace() { return this._get('marketplace', []); },
+  setMarketplace(m) { this._set('marketplace', m); },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONSTANTS & SEED DATA
+// ═══════════════════════════════════════════════════════════════════════════
+const ROLES = {admin:'Admin', member:'Member', guest:'Guest'};
+const ROLE_COLORS = {admin:'var(--danger)', member:'var(--member)', guest:'var(--text-dim)'};
+const CHANNEL_TYPES = {
+  announcement:{id:'announcement',label:'📢 Anuncio',desc:'Solo admin postea, todos leen'},
+  discussion:{id:'discussion',label:'💬 Discusión',desc:'Admin crea temas, usuarios comentan'},
+  marketplace:{id:'marketplace',label:'🛒 Marketplace',desc:'Ofertas de trabajo, equipos, servicios'},
+  resource:{id:'resource',label:'📚 Recursos',desc:'Guías, documentos, enlaces útiles'},
+};
+const VISIBILITY = {public:'public', private:'private'};
+const EMOJI_CATS = ['📢','💬','🏗️','🧗','🪢','🛡️','📋','🎓','💼','🛒','🌎','🔧','⚙️','🎯','🏆','📊','📸','🎬','🤝','❓'];
+const MARKETPLACE_TYPES = [
+  {id:'job',label:'🏗️ Oferta de trabajo',color:'var(--green)'},
+  {id:'gear',label:'🧰 Equipo en venta',color:'var(--yellow)'},
+  {id:'service',label:'🔧 Servicio',color:'var(--blue)'},
+  {id:'wanted',label:'🔍 Busco',color:'var(--member)'},
+];
+const IRATA_LEVELS = ['','IRATA L1','IRATA L2','IRATA L3','SPRAT L1','SPRAT L2','SPRAT L3','ARAA','Other'];
+
+function seedData() {
+return {
+categories: [
+  {id:'cat-welcome',name:'Bienvenida',emoji:'👋',visibility:'public',order:0,system:true},
+  {id:'cat-general',name:'General',emoji:'💬',visibility:'public',order:1},
+  {id:'cat-jobs',name:'Bolsa de Trabajo',emoji:'💼',visibility:'public',order:2},
+  {id:'cat-training',name:'Formación & Certificaciones',emoji:'🎓',visibility:'private',order:3},
+  {id:'cat-technical',name:'Técnico',emoji:'🔧',visibility:'private',order:4},
+  {id:'cat-gallery',name:'Galería',emoji:'📸',visibility:'public',order:5},
+],
+channels: [
+  {id:'ch-rules',name:'📋 reglas',categoryId:'cat-welcome',type:'announcement',createdAt:new Date().toISOString()},
+  {id:'ch-presentaciones',name:'👋 presentaciones',categoryId:'cat-welcome',type:'discussion',createdAt:new Date().toISOString()},
+  {id:'ch-noticias',name:'📢 noticias-ral',categoryId:'cat-general',type:'announcement',createdAt:new Date().toISOString()},
+  {id:'ch-charla',name:'💬 charla-general',categoryId:'cat-general',type:'discussion',createdAt:new Date().toISOString()},
+  {id:'ch-marketplace',name:'🛒 marketplace',categoryId:'cat-jobs',type:'marketplace',createdAt:new Date().toISOString()},
+  {id:'ch-job-alerts',name:'📢 alertas-trabajo',categoryId:'cat-jobs',type:'announcement',createdAt:new Date().toISOString()},
+  {id:'ch-irata',name:'🧗 irata-info',categoryId:'cat-training',type:'discussion',createdAt:new Date().toISOString()},
+  {id:'ch-cursos',name:'🎓 cursos-y-talleres',categoryId:'cat-training',type:'announcement',createdAt:new Date().toISOString()},
+  {id:'ch-nudos',name:'🪢 nudos-y-técnicas',categoryId:'cat-technical',type:'discussion',createdAt:new Date().toISOString()},
+  {id:'ch-equipos',name:'⚙️ equipos-y-herramientas',categoryId:'cat-technical',type:'discussion',createdAt:new Date().toISOString()},
+  {id:'ch-safety',name:'🛡️ seguridad',categoryId:'cat-technical',type:'discussion',createdAt:new Date().toISOString()},
+  {id:'ch-fotos',name:'📸 fotos-del-trabajo',categoryId:'cat-gallery',type:'discussion',createdAt:new Date().toISOString()},
+],
+};
+}
+
+function seedPosts() {
+return {
+'ch-rules': [
+  {id:'p1',title:'Reglas de la comunidad',body:'1. Respeto mutuo siempre\n2. No spam ni publicidad no autorizada\n3. Contenido relevante al rope access\n4. Compartir conocimiento es la base\n5. Reportar contenido inapropiado\n\n¡Bienvenidos a RAL! 🧗‍♂️🇦🇷🇨🇴🇲🇽🇨🇱🇵🇪🇪🇨',pinned:true,author:'Lionel',authorRole:'admin',createdAt:'2026-04-15T10:00:00Z'},
+],
+'ch-noticias': [
+  {id:'p2',title:'🚀 RAL Community está en línea',body:'Bienvenidos a la primera comunidad latina de rope access. Acá vamos a compartir conocimiento, oportunidades de trabajo, y construir una red profesional sólida.\n\nSi sos IRATA, SPRAT, o cualquier certificación de rope access, este es tu lugar.',pinned:true,author:'Lionel',authorRole:'admin',createdAt:'2026-04-16T08:00:00Z'},
+],
+'ch-charla': [
+  {id:'p3',title:'¿De dónde son y qué certificación tienen?',body:'Arranquemos conociéndonos. Cuenten de dónde son, qué nivel tienen y en qué sector trabajan (construcción, oil & gas, eólico, etc.)',author:'Lionel',authorRole:'admin',createdAt:'2026-04-16T09:00:00Z'},
+],
+'ch-presentaciones': [
+  {id:'p4',title:'Preséntate acá 👋',body:'Contanos quién sos, de dónde venís, tu experiencia en rope access y qué te trae a la comunidad.',author:'Lionel',authorRole:'admin',createdAt:'2026-04-15T10:30:00Z'},
+],
+};
+}
+
+function seedComments() {
+return {
+'p3': [
+  {id:'c1',text:'Soy de Colombia, IRATA L2, trabajo en mantenimiento de fachadas en Bogotá. Saludos! 🇨🇴',author:'Carlos M.',authorRole:'member',createdAt:'2026-04-16T10:30:00Z'},
+  {id:'c2',text:'México acá 🇲🇽 IRATA L3 supervisor, sector eólico. Buena iniciativa hermano!',author:'Diego R.',authorRole:'member',createdAt:'2026-04-16T11:15:00Z'},
+  {id:'c3',text:'Chile presente 🇨🇱 SPRAT L1, recién empezando. Espero aprender mucho acá.',author:'Matías V.',authorRole:'guest',createdAt:'2026-04-16T14:00:00Z'},
+],
+'p4': [
+  {id:'c4',text:'Hola! Soy Felipe, de Argentina, IRATA L2. Trabajo con Lionel en NZ. Buenísima la comunidad! 🇦🇷',author:'Felipe',authorRole:'member',createdAt:'2026-04-15T12:00:00Z'},
+],
+};
+}
+
+function seedMarketplace() {
+return [
+  {id:'mk1',type:'job',title:'Rope Access Technicians needed — Auckland NZ',body:'Buscamos técnicos IRATA L1+ para proyecto de fachada en Auckland CBD. Mínimo 6 meses experiencia. Contactar por WhatsApp.',location:'Auckland, NZ',contact:'+64 21 555 0101',author:'Lionel',authorRole:'admin',createdAt:'2026-04-17T08:00:00Z',active:true},
+  {id:'mk2',type:'gear',title:'Petzl Grigri+ en venta — poco uso',body:'Grigri+ con menos de 50 horas de uso. Incluye manual. Envío a toda Latinoamérica.',location:'Buenos Aires, AR',contact:'carlos@email.com',price:'$120 USD',author:'Carlos M.',authorRole:'member',createdAt:'2026-04-17T10:00:00Z',active:true},
+  {id:'mk3',type:'service',title:'Instructor IRATA — Cursos en español',body:'Ofrezco cursos de certificación IRATA L1 y L2 en español. Grupos reducidos, material incluido. Próximas fechas en CDMX y Bogotá.',location:'CDMX / Bogotá',contact:'diego@email.com',author:'Diego R.',authorRole:'member',createdAt:'2026-04-17T14:00:00Z',active:true},
+];
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+function timeAgo(iso) {
+  if(!iso) return '';
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if(diff < 60) return 'ahora';
+  if(diff < 3600) return Math.floor(diff/60) + 'm';
+  if(diff < 86400) return Math.floor(diff/3600) + 'h';
+  if(diff < 604800) return Math.floor(diff/86400) + 'd';
+  return new Date(iso).toLocaleDateString('es', {day:'numeric',month:'short'});
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STYLES
+// ═══════════════════════════════════════════════════════════════════════════
+const S = {
+  app:{display:'flex',height:'100vh',overflow:'hidden',background:'var(--bg-deep)'},
+  // Sidebar
+  sidebar:{width:272,background:'var(--bg-panel)',borderRight:'1px solid var(--border)',display:'flex',flexDirection:'column',flexShrink:0},
+  brand:{padding:'16px 16px 14px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:12},
+  brandLogo:{width:42,height:42,borderRadius:12,background:'var(--bg-deep)',border:'2px solid transparent',backgroundImage:'var(--rainbow)',backgroundOrigin:'border-box',backgroundClip:'padding-box, border-box',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:900,color:'#fff',letterSpacing:0.5,fontFamily:"'Outfit',sans-serif",flexShrink:0,position:'relative',overflow:'hidden'},
+  brandLogoInner:{position:'absolute',inset:2,borderRadius:10,background:'var(--bg-deep)',display:'flex',alignItems:'center',justifyContent:'center'},
+  brandText:{flex:1,minWidth:0},
+  brandTitle:{fontSize:15,fontWeight:800,color:'var(--text)',fontFamily:"'Outfit',sans-serif",letterSpacing:0.3},
+  brandSub:{fontSize:9,fontWeight:600,color:'var(--text-dim)',fontFamily:"'JetBrains Mono',monospace",textTransform:'uppercase',letterSpacing:1.2,marginTop:1},
+  userBar:{padding:'12px 14px',borderTop:'1px solid var(--border)',display:'flex',alignItems:'center',gap:10,background:'var(--bg-sunken)'},
+  userAvatar:{width:34,height:34,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,fontWeight:700,flexShrink:0},
+  userName:{fontSize:13,fontWeight:600,color:'var(--text)',flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'},
+  userRole:{fontSize:9,fontWeight:700,fontFamily:"'JetBrains Mono',monospace",textTransform:'uppercase',letterSpacing:0.8,padding:'2px 7px',borderRadius:4},
+  // Categories & Channels
+  catList:{flex:1,overflowY:'auto',padding:'6px 8px 16px'},
+  catWrap:{marginBottom:4},
+  catHeader:{display:'flex',alignItems:'center',gap:6,padding:'8px 8px 5px',cursor:'pointer',borderRadius:6,transition:'background 0.1s'},
+  catCaret:{fontSize:7,color:'var(--text-faint)',transition:'transform 0.15s',display:'inline-block',width:10},
+  catEmoji:{fontSize:14},
+  catName:{flex:1,fontSize:10,fontWeight:700,color:'var(--text-dim)',textTransform:'uppercase',letterSpacing:1,fontFamily:"'JetBrains Mono',monospace",overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'},
+  catPrivateBadge:{fontSize:8,color:'var(--member)',background:'var(--member-bg)',padding:'1px 5px',borderRadius:3,fontWeight:700,fontFamily:"'JetBrains Mono',monospace",letterSpacing:0.5},
+  catAddBtn:{background:'none',border:'none',color:'var(--text-faint)',cursor:'pointer',fontSize:14,padding:'0 3px',opacity:0.7},
+  chItem:{display:'flex',alignItems:'center',gap:8,padding:'6px 10px 6px 22px',borderRadius:6,cursor:'pointer',marginBottom:1,transition:'all 0.1s',fontSize:13,color:'var(--text-dim)',fontWeight:500},
+  chItemActive:{background:'var(--accent-bg)',color:'var(--accent-text)',fontWeight:600},
+  chItemHover:{background:'var(--bg-hover)'},
+  chUnread:{width:6,height:6,borderRadius:'50%',background:'var(--accent)',flexShrink:0,marginLeft:'auto'},
+  // Main
+  main:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'var(--bg)'},
+  header:{padding:'16px 24px 14px',borderBottom:'1px solid var(--border)',background:'var(--bg-panel)',display:'flex',alignItems:'center',gap:14},
+  headerInfo:{flex:1,minWidth:0},
+  headerTitle:{fontSize:18,fontWeight:700,color:'var(--text)',fontFamily:"'Outfit',sans-serif"},
+  headerDesc:{fontSize:12,color:'var(--text-dim)',marginTop:2},
+  headerBadge:{fontSize:9,fontWeight:700,fontFamily:"'JetBrains Mono',monospace",textTransform:'uppercase',letterSpacing:0.8,padding:'4px 10px',borderRadius:5,border:'1px solid'},
+  content:{flex:1,overflowY:'auto',padding:'20px 24px 40px'},
+  // Posts
+  postCard:{background:'var(--bg-panel)',border:'1px solid var(--border)',borderRadius:'var(--radius-lg)',padding:'18px 20px',marginBottom:12,transition:'border-color 0.15s',cursor:'pointer',animation:'fadeIn 0.25s ease-out'},
+  postPinned:{borderLeft:'3px solid var(--accent)'},
+  postAuthorRow:{display:'flex',alignItems:'center',gap:8,marginBottom:10},
+  postAvatar:{width:30,height:30,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:700,flexShrink:0},
+  postAuthorName:{fontSize:13,fontWeight:600,color:'var(--text)'},
+  postAuthorRole:{fontSize:8,fontWeight:700,fontFamily:"'JetBrains Mono',monospace",textTransform:'uppercase',letterSpacing:0.6,padding:'2px 6px',borderRadius:3},
+  postTime:{fontSize:11,color:'var(--text-faint)',marginLeft:'auto',fontFamily:"'JetBrains Mono',monospace"},
+  postTitle:{fontSize:16,fontWeight:700,color:'var(--text)',marginBottom:6,fontFamily:"'Outfit',sans-serif"},
+  postBody:{fontSize:14,color:'var(--text-muted)',lineHeight:1.65,whiteSpace:'pre-wrap'},
+  postFooter:{display:'flex',gap:14,marginTop:14,paddingTop:12,borderTop:'1px solid var(--border)',alignItems:'center'},
+  postStat:{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'var(--text-dim)',fontFamily:"'JetBrains Mono',monospace",cursor:'pointer',padding:'4px 8px',borderRadius:5,transition:'all 0.1s'},
+  // Comments
+  commentWrap:{marginLeft:0,marginTop:8},
+  commentCard:{background:'var(--bg-raised)',border:'1px solid var(--border)',borderRadius:'var(--radius)',padding:'12px 14px',marginBottom:6,animation:'fadeIn 0.2s ease-out'},
+  commentInput:{width:'100%',background:'var(--bg-input)',border:'1px solid var(--border)',borderRadius:'var(--radius)',padding:'10px 14px',color:'var(--text)',fontSize:13,resize:'none',outline:'none',lineHeight:1.5,fontFamily:"'DM Sans',sans-serif"},
+  // Marketplace
+  mkCard:{background:'var(--bg-panel)',border:'1px solid var(--border)',borderRadius:'var(--radius-lg)',overflow:'hidden',marginBottom:12,animation:'fadeIn 0.25s ease-out'},
+  mkTypeBar:{height:3},
+  mkBody:{padding:'16px 20px'},
+  mkMeta:{display:'flex',gap:8,flexWrap:'wrap',marginTop:10},
+  mkTag:{fontSize:10,fontWeight:600,fontFamily:"'JetBrains Mono',monospace",padding:'3px 8px',borderRadius:4,background:'var(--bg-raised)',color:'var(--text-muted)',display:'inline-flex',alignItems:'center',gap:4},
+  // Modals
+  overlay:{position:'fixed',inset:0,background:'rgba(8,12,20,0.8)',backdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:20,animation:'fadeIn 0.15s ease-out'},
+  modal:{background:'var(--bg-panel)',border:'1px solid var(--border-strong)',borderRadius:'var(--radius-xl)',width:'100%',maxWidth:520,maxHeight:'85vh',overflowY:'auto',boxShadow:'var(--shadow-lg)'},
+  modalSm:{maxWidth:400},
+  modalHeader:{padding:'20px 24px 16px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between'},
+  modalTitle:{fontSize:17,fontWeight:700,color:'var(--text)',fontFamily:"'Outfit',sans-serif"},
+  modalKicker:{fontSize:9,fontWeight:600,color:'var(--text-dim)',fontFamily:"'JetBrains Mono',monospace",textTransform:'uppercase',letterSpacing:1,marginBottom:3},
+  modalBody:{padding:'20px 24px'},
+  modalFooter:{padding:'14px 24px',borderTop:'1px solid var(--border)',display:'flex',justifyContent:'flex-end',gap:8},
+  closeBtn:{background:'none',border:'none',color:'var(--text-dim)',fontSize:20,cursor:'pointer',lineHeight:1,padding:4},
+  label:{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:'var(--text-dim)',fontWeight:600,marginBottom:6,display:'block',textTransform:'uppercase',letterSpacing:0.8},
+  input:{width:'100%',background:'var(--bg-input)',border:'1px solid var(--border)',borderRadius:'var(--radius)',padding:'10px 12px',color:'var(--text)',fontSize:14,outline:'none',marginBottom:14,transition:'border-color 0.15s'},
+  textarea:{width:'100%',background:'var(--bg-input)',border:'1px solid var(--border)',borderRadius:'var(--radius)',padding:'10px 12px',color:'var(--text)',fontSize:14,outline:'none',marginBottom:14,resize:'vertical',minHeight:80,lineHeight:1.55,fontFamily:"'DM Sans',sans-serif"},
+  select:{width:'100%',background:'var(--bg-input)',border:'1px solid var(--border)',borderRadius:'var(--radius)',padding:'10px 12px',color:'var(--text)',fontSize:14,outline:'none',marginBottom:14,appearance:'auto'},
+  cancelBtn:{padding:'9px 18px',background:'transparent',border:'1px solid var(--border)',borderRadius:'var(--radius)',color:'var(--text-muted)',fontSize:12,cursor:'pointer',fontWeight:600,fontFamily:"'JetBrains Mono',monospace",textTransform:'uppercase',letterSpacing:0.3},
+  primaryBtn:{padding:'9px 18px',background:'var(--accent)',border:'1px solid var(--accent)',borderRadius:'var(--radius)',color:'var(--bg-deep)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:"'JetBrains Mono',monospace",textTransform:'uppercase',letterSpacing:0.3},
+  dangerBtn:{padding:'9px 18px',background:'var(--danger)',border:'1px solid var(--danger)',borderRadius:'var(--radius)',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:"'JetBrains Mono',monospace",textTransform:'uppercase',letterSpacing:0.3},
+  ghostBtn:{padding:'8px 14px',background:'var(--bg-raised)',border:'1px solid var(--border)',borderRadius:'var(--radius)',color:'var(--text-muted)',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:"'JetBrains Mono',monospace",textTransform:'uppercase',letterSpacing:0.2,display:'inline-flex',alignItems:'center',gap:5,transition:'all 0.1s'},
+  row2:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10},
+  empty:{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:12,color:'var(--text-faint)',minHeight:300},
+  emptyIcon:{fontSize:48,opacity:0.4},
+  emptyText:{fontSize:12,fontFamily:"'JetBrains Mono',monospace",textTransform:'uppercase',letterSpacing:1},
+  emojiGrid:{display:'grid',gridTemplateColumns:'repeat(10,1fr)',gap:3,marginBottom:12},
+  emojiCell:{aspectRatio:'1',background:'var(--bg-raised)',border:'1px solid var(--border)',borderRadius:6,fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',transition:'all 0.1s'},
+  emojiCellActive:{background:'var(--accent-bg)',borderColor:'var(--accent)'},
+  // Locked overlay
+  lockedOverlay:{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:16,padding:40,textAlign:'center'},
+  lockIcon:{fontSize:60,opacity:0.3,marginBottom:8},
+  lockTitle:{fontSize:18,fontWeight:700,color:'var(--text)',fontFamily:"'Outfit',sans-serif"},
+  lockDesc:{fontSize:13,color:'var(--text-dim)',maxWidth:360,lineHeight:1.6},
+  lockBtn:{padding:'12px 28px',background:'var(--member)',border:'none',borderRadius:'var(--radius)',color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:"'Outfit',sans-serif",letterSpacing:0.3},
+  // Login
+  loginWrap:{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'var(--bg-deep)',padding:20},
+  loginCard:{width:'100%',maxWidth:420,background:'var(--bg-panel)',border:'1px solid var(--border)',borderRadius:'var(--radius-xl)',overflow:'hidden',boxShadow:'var(--shadow-lg)'},
+  loginHeader:{padding:'32px 32px 24px',textAlign:'center',borderBottom:'1px solid var(--border)',background:'var(--bg-sunken)'},
+  loginLogo:{width:72,height:72,borderRadius:18,margin:'0 auto 16px',background:'var(--bg-deep)',position:'relative',overflow:'hidden'},
+  loginLogoRing:{position:'absolute',inset:0,borderRadius:18,padding:3,background:'var(--rainbow)',backgroundSize:'200% 200%',animation:'rainbowBorder 4s ease infinite'},
+  loginLogoInner:{position:'absolute',inset:3,borderRadius:15,background:'var(--bg-deep)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:900,color:'#fff',fontFamily:"'Outfit',sans-serif"},
+  loginTitle:{fontSize:22,fontWeight:800,color:'var(--text)',fontFamily:"'Outfit',sans-serif",marginBottom:4},
+  loginSub:{fontSize:12,color:'var(--text-dim)'},
+  loginBody:{padding:'24px 32px 32px'},
+  // Online users
+  onlineBar:{display:'flex',gap:6,padding:'8px 14px',alignItems:'center',borderBottom:'1px solid var(--border)'},
+  onlineDot:{width:8,height:8,borderRadius:'50%',background:'var(--success)',flexShrink:0,animation:'pulse 2s ease infinite'},
+  onlineText:{fontSize:10,color:'var(--text-dim)',fontFamily:"'JetBrains Mono',monospace",fontWeight:600,letterSpacing:0.5},
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AVATAR HELPER
+// ═══════════════════════════════════════════════════════════════════════════
+function getAvatarColor(name) {
+  const colors = ['#e74c3c','#2ecc40','#f1c40f','#6cb4ee','#e84393','#22d3ee','#a78bfa','#f97316','#14b8a6','#8b5cf6'];
+  let h = 0; for(let i=0;i<(name||'').length;i++) h = ((h<<5)-h)+name.charCodeAt(i);
+  return colors[Math.abs(h) % colors.length];
+}
+function Avatar({name,size=30,style:extra}) {
+  const c = getAvatarColor(name);
+  return <div style={{...S.postAvatar,width:size,height:size,background:c+'22',color:c,fontSize:Math.round(size*0.43),...extra}}>
+    {(name||'?').charAt(0).toUpperCase()}
+  </div>;
+}
+function RoleBadge({role,style:extra}) {
+  const bg = role==='admin'?'var(--danger-bg)':role==='member'?'var(--member-bg)':'var(--bg-raised)';
+  const color = ROLE_COLORS[role]||'var(--text-dim)';
+  return <span style={{...S.postAuthorRole,background:bg,color,...extra}}>{ROLES[role]||role}</span>;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LOGIN SCREEN
+// ═══════════════════════════════════════════════════════════════════════════
+function LoginScreen({onLogin}) {
+  const [name, setName] = useState('');
+  const [country, setCountry] = useState('');
+  const [level, setLevel] = useState('');
+  const submit = () => {
+    if(!name.trim()) return;
+    onLogin({id:'u-'+uid(), name:name.trim(), country:country.trim(), level, role:'guest', createdAt:new Date().toISOString()});
+  };
+  return (
+  <div style={S.loginWrap}>
+    <div style={S.loginCard} className="fade-in">
+      <div style={S.loginHeader}>
+        <div style={S.loginLogo}>
+          <div style={S.loginLogoRing}/>
+          <div style={S.loginLogoInner}>RAL</div>
+        </div>
+        <div style={S.loginTitle}>Rope Access Latino</div>
+        <div style={S.loginSub}>Community · La comunidad latina de rope access</div>
+      </div>
+      <div style={S.loginBody}>
+        <label style={S.label}>Tu nombre *</label>
+        <input style={S.input} value={name} onChange={e=>setName(e.target.value)} placeholder="Nombre completo" autoFocus
+          onKeyDown={e=>{if(e.key==='Enter')submit();}}/>
+        <div style={S.row2}>
+          <div>
+            <label style={S.label}>País</label>
+            <input style={S.input} value={country} onChange={e=>setCountry(e.target.value)} placeholder="e.g. Argentina"/>
+          </div>
+          <div>
+            <label style={S.label}>Certificación</label>
+            <select style={S.select} value={level} onChange={e=>setLevel(e.target.value)}>
+              <option value="">— Seleccionar —</option>
+              {IRATA_LEVELS.filter(Boolean).map(l=><option key={l} value={l}>{l}</option>)}
+            </select>
+          </div>
+        </div>
+        <button style={{...S.primaryBtn,width:'100%',padding:'12px',fontSize:13,marginTop:4}} onClick={submit}>
+          Entrar a la comunidad →
+        </button>
+        <div style={{fontSize:10,color:'var(--text-faint)',textAlign:'center',marginTop:14,fontFamily:"'JetBrains Mono',monospace",lineHeight:1.5}}>
+          Demo mode — en producción esto será auth con Supabase
+        </div>
+      </div>
+    </div>
+  </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MODALS
+// ═══════════════════════════════════════════════════════════════════════════
+function CategoryModal({onClose, onSave, editing}) {
+  const [name,setName]=useState(editing?.name||'');
+  const [emoji,setEmoji]=useState(editing?.emoji||'📁');
+  const [vis,setVis]=useState(editing?.visibility||'public');
+  const save=()=>{if(!name.trim())return;onSave({id:editing?.id||'cat-'+uid(),name:name.trim(),emoji,visibility:vis,order:editing?.order??999,system:false});onClose();};
+  return (
+  <div style={S.overlay} onClick={onClose}>
+    <div style={{...S.modal,...S.modalSm}} onClick={e=>e.stopPropagation()} className="fade-in">
+      <div style={S.modalHeader}>
+        <div><div style={S.modalKicker}>{editing?'Editar':'Nueva'} categoría</div><div style={S.modalTitle}>{editing?'Editar':'Crear'} categoría</div></div>
+        <button style={S.closeBtn} onClick={onClose}>×</button>
+      </div>
+      <div style={S.modalBody}>
+        <label style={S.label}>Nombre *</label>
+        <input style={S.input} value={name} onChange={e=>setName(e.target.value)} autoFocus/>
+        <label style={S.label}>Visibilidad</label>
+        <div style={{display:'flex',gap:8,marginBottom:14}}>
+          <button style={{...S.ghostBtn,...(vis==='public'?{background:'var(--accent-bg)',borderColor:'var(--accent)',color:'var(--accent-text)'}:{})}} onClick={()=>setVis('public')}>🌍 Pública</button>
+          <button style={{...S.ghostBtn,...(vis==='private'?{background:'var(--member-bg)',borderColor:'var(--member)',color:'var(--member)'}:{})}} onClick={()=>setVis('private')}>🔒 Privada</button>
+        </div>
+        <label style={S.label}>Emoji</label>
+        <div style={S.emojiGrid}>
+          {EMOJI_CATS.map(em=><div key={em} style={{...S.emojiCell,...(emoji===em?S.emojiCellActive:{})}} onClick={()=>setEmoji(em)}>{em}</div>)}
+        </div>
+      </div>
+      <div style={S.modalFooter}>
+        <button style={S.cancelBtn} onClick={onClose}>Cancelar</button>
+        <button style={{...S.primaryBtn,opacity:name.trim()?1:0.5}} disabled={!name.trim()} onClick={save}>{editing?'Guardar':'Crear'}</button>
+      </div>
+    </div>
+  </div>
+  );
+}
+
+function ChannelModal({onClose, onSave, categoryId, editing}) {
+  const [name,setName]=useState(editing?.name||'');
+  const [type,setType]=useState(editing?.type||'discussion');
+  const save=()=>{if(!name.trim())return;onSave({id:editing?.id||'ch-'+uid(),name:name.trim(),categoryId,type,createdAt:editing?.createdAt||new Date().toISOString()});onClose();};
+  return (
+  <div style={S.overlay} onClick={onClose}>
+    <div style={{...S.modal,...S.modalSm}} onClick={e=>e.stopPropagation()} className="fade-in">
+      <div style={S.modalHeader}>
+        <div><div style={S.modalKicker}>{editing?'Editar':'Nuevo'} canal</div><div style={S.modalTitle}>{editing?'Editar':'Crear'} canal</div></div>
+        <button style={S.closeBtn} onClick={onClose}>×</button>
+      </div>
+      <div style={S.modalBody}>
+        <label style={S.label}>Nombre del canal *</label>
+        <input style={S.input} value={name} onChange={e=>setName(e.target.value)} placeholder="ej: 📢 noticias" autoFocus/>
+        <label style={S.label}>Tipo de canal</label>
+        <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:14}}>
+          {Object.values(CHANNEL_TYPES).map(ct=>(
+          <div key={ct.id} style={{...S.ghostBtn,justifyContent:'flex-start',width:'100%',padding:'10px 12px',
+            ...(type===ct.id?{background:'var(--accent-bg)',borderColor:'var(--accent)',color:'var(--accent-text)'}:{})}}
+            onClick={()=>setType(ct.id)}>
+            <span style={{fontSize:14}}>{ct.label.split(' ')[0]}</span>
+            <span style={{flex:1,textAlign:'left'}}>{ct.label.split(' ').slice(1).join(' ')}</span>
+            <span style={{fontSize:9,color:'var(--text-faint)',textTransform:'none',letterSpacing:0,fontWeight:400}}>{ct.desc}</span>
+          </div>
+          ))}
+        </div>
+      </div>
+      <div style={S.modalFooter}>
+        <button style={S.cancelBtn} onClick={onClose}>Cancelar</button>
+        <button style={{...S.primaryBtn,opacity:name.trim()?1:0.5}} disabled={!name.trim()} onClick={save}>{editing?'Guardar':'Crear'}</button>
+      </div>
+    </div>
+  </div>
+  );
+}
+
+function PostModal({onClose, onSave, channelName, editing}) {
+  const [title,setTitle]=useState(editing?.title||'');
+  const [body,setBody]=useState(editing?.body||'');
+  const [pinned,setPinned]=useState(editing?.pinned||false);
+  const save=()=>{if(!title.trim()||!body.trim())return;onSave({title:title.trim(),body:body.trim(),pinned});onClose();};
+  return (
+  <div style={S.overlay} onClick={onClose}>
+    <div style={S.modal} onClick={e=>e.stopPropagation()} className="fade-in">
+      <div style={S.modalHeader}>
+        <div><div style={S.modalKicker}>{editing?'Editar':'Nuevo'} post en {channelName}</div><div style={S.modalTitle}>{editing?'Editar':'Crear'} publicación</div></div>
+        <button style={S.closeBtn} onClick={onClose}>×</button>
+      </div>
+      <div style={S.modalBody}>
+        <label style={S.label}>Título *</label>
+        <input style={S.input} value={title} onChange={e=>setTitle(e.target.value)} autoFocus/>
+        <label style={S.label}>Contenido *</label>
+        <textarea style={{...S.textarea,minHeight:140}} value={body} onChange={e=>setBody(e.target.value)} rows={6}/>
+        <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',fontSize:13,color:'var(--text-muted)'}}>
+          <input type="checkbox" checked={pinned} onChange={e=>setPinned(e.target.checked)} style={{accentColor:'var(--accent)'}}/>
+          📌 Fijar esta publicación arriba
+        </label>
+      </div>
+      <div style={S.modalFooter}>
+        <button style={S.cancelBtn} onClick={onClose}>Cancelar</button>
+        <button style={{...S.primaryBtn,opacity:(title.trim()&&body.trim())?1:0.5}} onClick={save}>Publicar</button>
+      </div>
+    </div>
+  </div>
+  );
+}
+
+function MarketplaceModal({onClose, onSave, user, editing}) {
+  const [type,setType]=useState(editing?.type||'job');
+  const [title,setTitle]=useState(editing?.title||'');
+  const [body,setBody]=useState(editing?.body||'');
+  const [location,setLoc]=useState(editing?.location||user?.country||'');
+  const [contact,setContact]=useState(editing?.contact||'');
+  const [price,setPrice]=useState(editing?.price||'');
+  const save=()=>{
+    if(!title.trim()||!body.trim())return;
+    onSave({type,title:title.trim(),body:body.trim(),location:location.trim(),contact:contact.trim(),price:price.trim()});
+    onClose();
+  };
+  return (
+  <div style={S.overlay} onClick={onClose}>
+    <div style={S.modal} onClick={e=>e.stopPropagation()} className="fade-in">
+      <div style={S.modalHeader}>
+        <div><div style={S.modalKicker}>{editing?'Editar':'Nueva'} publicación</div><div style={S.modalTitle}>Marketplace</div></div>
+        <button style={S.closeBtn} onClick={onClose}>×</button>
+      </div>
+      <div style={S.modalBody}>
+        <label style={S.label}>Tipo *</label>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:6,marginBottom:14}}>
+          {MARKETPLACE_TYPES.map(t=>(
+          <div key={t.id} style={{...S.ghostBtn,justifyContent:'center',
+            ...(type===t.id?{background:'var(--accent-bg)',borderColor:'var(--accent)',color:'var(--accent-text)'}:{})}}
+            onClick={()=>setType(t.id)}>{t.label}</div>
+          ))}
+        </div>
+        <label style={S.label}>Título *</label>
+        <input style={S.input} value={title} onChange={e=>setTitle(e.target.value)} autoFocus/>
+        <label style={S.label}>Descripción *</label>
+        <textarea style={S.textarea} value={body} onChange={e=>setBody(e.target.value)} rows={4}/>
+        <div style={S.row2}>
+          <div><label style={S.label}>Ubicación</label><input style={S.input} value={location} onChange={e=>setLoc(e.target.value)} placeholder="Ciudad, País"/></div>
+          <div><label style={S.label}>Precio</label><input style={S.input} value={price} onChange={e=>setPrice(e.target.value)} placeholder="$120 USD"/></div>
+        </div>
+        <label style={S.label}>Contacto</label>
+        <input style={S.input} value={contact} onChange={e=>setContact(e.target.value)} placeholder="WhatsApp, email, etc."/>
+      </div>
+      <div style={S.modalFooter}>
+        <button style={S.cancelBtn} onClick={onClose}>Cancelar</button>
+        <button style={{...S.primaryBtn,opacity:(title.trim()&&body.trim())?1:0.5}} onClick={save}>Publicar</button>
+      </div>
+    </div>
+  </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CHANNEL VIEWS
+// ═══════════════════════════════════════════════════════════════════════════
+function AnnouncementView({channel, posts, user, onNewPost, onDeletePost}) {
+  const isAdmin = user?.role === 'admin';
+  const sorted = [...(posts||[])].sort((a,b)=>{
+    if(a.pinned && !b.pinned) return -1;
+    if(!a.pinned && b.pinned) return 1;
+    return new Date(b.createdAt)-new Date(a.createdAt);
+  });
+  return (
+  <div>
+    {isAdmin && (
+      <div style={{display:'flex',justifyContent:'flex-end',marginBottom:16}}>
+        <button style={S.primaryBtn} onClick={onNewPost}>+ Nuevo anuncio</button>
+      </div>
+    )}
+    {sorted.length === 0
+      ? <div style={S.empty}><span style={S.emptyIcon}>📢</span><span style={S.emptyText}>Sin anuncios todavía</span></div>
+      : sorted.map(p=>(
+      <div key={p.id} style={{...S.postCard,...(p.pinned?S.postPinned:{}),cursor:'default'}}>
+        <div style={S.postAuthorRow}>
+          <Avatar name={p.author}/>
+          <span style={S.postAuthorName}>{p.author}</span>
+          <RoleBadge role={p.authorRole}/>
+          {p.pinned && <span style={{fontSize:12,color:'var(--accent)'}}>📌</span>}
+          <span style={S.postTime}>{timeAgo(p.createdAt)}</span>
+        </div>
+        <div style={S.postTitle}>{p.title}</div>
+        <div style={S.postBody}>{p.body}</div>
+        {isAdmin && (
+          <div style={S.postFooter}>
+            <span style={S.postStat} onClick={()=>onDeletePost(p.id)}>🗑 Eliminar</span>
+          </div>
+        )}
+      </div>
+    ))}
+  </div>
+  );
+}
+
+function DiscussionView({channel, posts, comments, user, onNewPost, onDeletePost, onAddComment, onDeleteComment}) {
+  const isAdmin = user?.role === 'admin';
+  const [expandedPost, setExpandedPost] = useState(null);
+  const [commentText, setCommentText] = useState('');
+  const sorted = [...(posts||[])].sort((a,b)=>{
+    if(a.pinned && !b.pinned) return -1;
+    if(!a.pinned && b.pinned) return 1;
+    return new Date(b.createdAt)-new Date(a.createdAt);
+  });
+
+  const submitComment = (postId) => {
+    if(!commentText.trim()) return;
+    onAddComment(postId, commentText.trim());
+    setCommentText('');
+  };
+
+  return (
+  <div>
+    {isAdmin && (
+      <div style={{display:'flex',justifyContent:'flex-end',marginBottom:16}}>
+        <button style={S.primaryBtn} onClick={onNewPost}>+ Nuevo tema</button>
+      </div>
+    )}
+    {sorted.length === 0
+      ? <div style={S.empty}><span style={S.emptyIcon}>💬</span><span style={S.emptyText}>Sin temas todavía</span></div>
+      : sorted.map(p=>{
+      const postComments = comments[p.id] || [];
+      const isExpanded = expandedPost === p.id;
+      return (
+      <div key={p.id} style={{marginBottom:16,animation:'fadeIn 0.25s ease-out'}}>
+        <div style={{...S.postCard,...(p.pinned?S.postPinned:{}),marginBottom:0,borderRadius:isExpanded?'var(--radius-lg) var(--radius-lg) 0 0':'var(--radius-lg)'}}
+          onClick={()=>setExpandedPost(isExpanded?null:p.id)}>
+          <div style={S.postAuthorRow}>
+            <Avatar name={p.author}/>
+            <span style={S.postAuthorName}>{p.author}</span>
+            <RoleBadge role={p.authorRole}/>
+            {p.pinned && <span style={{fontSize:12,color:'var(--accent)'}}>📌</span>}
+            <span style={S.postTime}>{timeAgo(p.createdAt)}</span>
+          </div>
+          <div style={S.postTitle}>{p.title}</div>
+          <div style={{...S.postBody,...(!isExpanded?{maxHeight:80,overflow:'hidden',WebkitMaskImage:postComments.length>0||p.body.length>200?'linear-gradient(to bottom, black 60%, transparent 100%)':undefined}:{})}}>{p.body}</div>
+          <div style={S.postFooter}>
+            <span style={{...S.postStat,...(isExpanded?{color:'var(--accent-text)',background:'var(--accent-bg)'}:{})}}>
+              💬 {postComments.length} comentario{postComments.length===1?'':'s'}
+            </span>
+            {isAdmin && <span style={S.postStat} onClick={(e)=>{e.stopPropagation();onDeletePost(p.id);}}>🗑</span>}
+          </div>
+        </div>
+
+        {isExpanded && (
+        <div style={{background:'var(--bg-raised)',border:'1px solid var(--border)',borderTop:'none',borderRadius:'0 0 var(--radius-lg) var(--radius-lg)',padding:'14px 18px'}} className="fade-in">
+          {postComments.length > 0 && (
+            <div style={S.commentWrap}>
+              {postComments.map(c=>(
+              <div key={c.id} style={S.commentCard}>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                  <Avatar name={c.author} size={24}/>
+                  <span style={{fontSize:12,fontWeight:600,color:'var(--text)'}}>{c.author}</span>
+                  <RoleBadge role={c.authorRole} style={{fontSize:7,padding:'1px 5px'}}/>
+                  <span style={{fontSize:10,color:'var(--text-faint)',marginLeft:'auto',fontFamily:"'JetBrains Mono',monospace"}}>{timeAgo(c.createdAt)}</span>
+                  {(isAdmin || c.author === user?.name) && (
+                    <button onClick={()=>onDeleteComment(p.id, c.id)} style={{background:'none',border:'none',color:'var(--text-faint)',cursor:'pointer',fontSize:12,padding:0}}>×</button>
+                  )}
+                </div>
+                <div style={{fontSize:13,color:'var(--text-muted)',lineHeight:1.55,whiteSpace:'pre-wrap',paddingLeft:32}}>{c.text}</div>
+              </div>
+              ))}
+            </div>
+          )}
+          <div style={{display:'flex',gap:8,marginTop:10,alignItems:'flex-end'}}>
+            <Avatar name={user?.name} size={28} style={{flexShrink:0,marginBottom:2}}/>
+            <textarea style={{...S.commentInput,marginBottom:0,flex:1}} value={commentText} onChange={e=>setCommentText(e.target.value)}
+              placeholder="Escribe un comentario..." rows={2}
+              onKeyDown={e=>{if(e.key==='Enter'&&e.metaKey){submitComment(p.id);}}}/>
+            <button style={{...S.primaryBtn,padding:'8px 14px',flexShrink:0}} onClick={()=>submitComment(p.id)}>Enviar</button>
+          </div>
+        </div>
+        )}
+      </div>
+      );
+    })}
+  </div>
+  );
+}
+
+function MarketplaceView({listings, user, onNew, onDelete}) {
+  const isAdmin = user?.role === 'admin';
+  const canPost = user?.role === 'admin' || user?.role === 'member';
+  const active = (listings||[]).filter(l=>l.active).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  const [filter, setFilter] = useState('all');
+  const filtered = filter === 'all' ? active : active.filter(l=>l.type===filter);
+  return (
+  <div>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,flexWrap:'wrap',gap:8}}>
+      <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+        <button style={{...S.ghostBtn,...(filter==='all'?{background:'var(--accent-bg)',borderColor:'var(--accent)',color:'var(--accent-text)'}:{})}} onClick={()=>setFilter('all')}>Todos</button>
+        {MARKETPLACE_TYPES.map(t=>(
+          <button key={t.id} style={{...S.ghostBtn,...(filter===t.id?{background:'var(--accent-bg)',borderColor:'var(--accent)',color:'var(--accent-text)'}:{})}} onClick={()=>setFilter(t.id)}>{t.label.split(' ')[0]}</button>
+        ))}
+      </div>
+      {canPost && <button style={S.primaryBtn} onClick={onNew}>+ Publicar</button>}
+    </div>
+    {filtered.length === 0
+      ? <div style={S.empty}><span style={S.emptyIcon}>🛒</span><span style={S.emptyText}>{filter==='all'?'Sin publicaciones':'Sin resultados'}</span></div>
+      : filtered.map(l=>{
+      const t = MARKETPLACE_TYPES.find(mt=>mt.id===l.type);
+      return (
+      <div key={l.id} style={S.mkCard}>
+        <div style={{...S.mkTypeBar,background:t?.color||'var(--accent)'}}/>
+        <div style={S.mkBody}>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+            <span style={{...S.headerBadge,color:t?.color,borderColor:t?.color,background:t?.color+'15',fontSize:8,padding:'3px 8px'}}>{t?.label}</span>
+            <span style={{marginLeft:'auto',...S.postTime}}>{timeAgo(l.createdAt)}</span>
+          </div>
+          <div style={{fontSize:16,fontWeight:700,color:'var(--text)',fontFamily:"'Outfit',sans-serif",marginBottom:6}}>{l.title}</div>
+          <div style={{fontSize:13,color:'var(--text-muted)',lineHeight:1.6,whiteSpace:'pre-wrap',marginBottom:10}}>{l.body}</div>
+          <div style={S.mkMeta}>
+            {l.location && <span style={S.mkTag}>📍 {l.location}</span>}
+            {l.price && <span style={{...S.mkTag,color:'var(--success)'}}>💰 {l.price}</span>}
+            {l.contact && <span style={{...S.mkTag,color:'var(--accent-text)'}}>📱 {l.contact}</span>}
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginTop:12,paddingTop:10,borderTop:'1px solid var(--border)'}}>
+            <Avatar name={l.author} size={22}/>
+            <span style={{fontSize:12,fontWeight:600,color:'var(--text)'}}>{l.author}</span>
+            <RoleBadge role={l.authorRole} style={{fontSize:7,padding:'1px 5px'}}/>
+            {(isAdmin || l.author === user?.name) && (
+              <span style={{...S.postStat,marginLeft:'auto'}} onClick={()=>onDelete(l.id)}>🗑</span>
+            )}
+          </div>
+        </div>
+      </div>
+      );
+    })}
+    {!canPost && (
+      <div style={{textAlign:'center',padding:'20px',color:'var(--text-dim)',fontSize:12,border:'1px dashed var(--border)',borderRadius:'var(--radius)',marginTop:12}}>
+        🔒 Solo miembros pueden publicar en el marketplace. <span style={{color:'var(--member)',cursor:'pointer'}}>Hazte miembro →</span>
+      </div>
+    )}
+  </div>
+  );
+}
+
+function ResourceView({channel, posts, user, onNewPost, onDeletePost}) {
+  const isAdmin = user?.role === 'admin';
+  const sorted = [...(posts||[])].sort((a,b)=>{
+    if(a.pinned&&!b.pinned) return -1;
+    if(!a.pinned&&b.pinned) return 1;
+    return new Date(b.createdAt)-new Date(a.createdAt);
+  });
+  return (
+  <div>
+    {isAdmin && <div style={{display:'flex',justifyContent:'flex-end',marginBottom:16}}><button style={S.primaryBtn} onClick={onNewPost}>+ Nuevo recurso</button></div>}
+    {sorted.length===0
+      ? <div style={S.empty}><span style={S.emptyIcon}>📚</span><span style={S.emptyText}>Sin recursos todavía</span></div>
+      : sorted.map(p=>(
+      <div key={p.id} style={{...S.postCard,...(p.pinned?S.postPinned:{}),cursor:'default'}}>
+        <div style={S.postAuthorRow}>
+          <Avatar name={p.author}/>
+          <span style={S.postAuthorName}>{p.author}</span>
+          <RoleBadge role={p.authorRole}/>
+          {p.pinned && <span style={{fontSize:12,color:'var(--accent)'}}>📌</span>}
+          <span style={S.postTime}>{timeAgo(p.createdAt)}</span>
+        </div>
+        <div style={S.postTitle}>{p.title}</div>
+        <div style={S.postBody}>{p.body}</div>
+        {isAdmin && <div style={S.postFooter}><span style={S.postStat} onClick={()=>onDeletePost(p.id)}>🗑</span></div>}
+      </div>
+    ))}
+  </div>
+  );
+}
+
+function LockedView({onUpgrade}) {
+  return (
+  <div style={S.lockedOverlay}>
+    <div style={S.lockIcon}>🔒</div>
+    <div style={S.lockTitle}>Contenido exclusivo para miembros</div>
+    <div style={S.lockDesc}>Esta sección es solo para miembros de la comunidad RAL. Obtené acceso a contenido técnico, cursos, descuentos y más.</div>
+    <button style={S.lockBtn} onClick={onUpgrade}>⭐ Hacete miembro</button>
+  </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SIDEBAR
+// ═══════════════════════════════════════════════════════════════════════════
+function Sidebar({data, user, activeChannelId, onSelectChannel, onAddCategory, onEditCategory, onAddChannel, onLogout, onToggleAdmin, onToggleMember}) {
+  const [collapsed, setCollapsed] = useState({});
+  const sortedCats = useMemo(()=>[...data.categories].sort((a,b)=>(a.order??999)-(b.order??999)),[data.categories]);
+  const isAdmin = user?.role === 'admin';
+
+  return (
+  <div style={S.sidebar}>
+    <div style={S.brand}>
+      <div style={S.brandLogo}>
+        <div style={{position:'absolute',inset:0,borderRadius:12,padding:2,background:'var(--rainbow)',backgroundSize:'200% 200%',animation:'rainbowBorder 4s ease infinite'}}/>
+        <div style={S.brandLogoInner}><span style={{fontSize:11,fontWeight:900,fontFamily:"'Outfit',sans-serif"}}>RAL</span></div>
+      </div>
+      <div style={S.brandText}>
+        <div style={S.brandTitle}>Rope Access Latino</div>
+        <div style={S.brandSub}>Community</div>
+      </div>
+    </div>
+
+    <div style={S.onlineBar}>
+      <span style={S.onlineDot}/>
+      <span style={S.onlineText}>42 online</span>
+    </div>
+
+    <div style={S.catList}>
+      {isAdmin && (
+        <div style={{padding:'6px 4px 10px',display:'flex',gap:4}}>
+          <button style={{...S.ghostBtn,flex:1,justifyContent:'center',fontSize:10}} onClick={onAddCategory}>+ Categoría</button>
+        </div>
+      )}
+
+      {sortedCats.map(cat=>{
+        const catChannels = data.channels.filter(c=>c.categoryId===cat.id);
+        const isPrivate = cat.visibility === 'private';
+        const isOpen = !collapsed[cat.id];
+        const canView = !isPrivate || user?.role === 'admin' || user?.role === 'member';
+
+        return (
+        <div key={cat.id} style={S.catWrap}>
+          <div style={S.catHeader} onClick={()=>setCollapsed(prev=>({...prev,[cat.id]:!prev[cat.id]}))}>
+            <span style={{...S.catCaret,transform:isOpen?'rotate(90deg)':'rotate(0deg)'}}>▶</span>
+            <span style={S.catEmoji}>{cat.emoji}</span>
+            <span style={S.catName}>{cat.name}</span>
+            {isPrivate && <span style={S.catPrivateBadge}>🔒</span>}
+            {isAdmin && <button style={S.catAddBtn} onClick={e=>{e.stopPropagation();onAddChannel(cat.id);}}>+</button>}
+          </div>
+          {isOpen && canView && catChannels.map(ch=>{
+            const isActive = activeChannelId === ch.id;
+            return (
+            <div key={ch.id}
+              style={{...S.chItem,...(isActive?S.chItemActive:{})}}
+              onClick={()=>onSelectChannel(ch.id)}
+              onMouseEnter={e=>{if(!isActive)e.currentTarget.style.background='var(--bg-hover)';}}
+              onMouseLeave={e=>{if(!isActive)e.currentTarget.style.background='transparent';}}>
+              <span>{ch.name}</span>
+            </div>
+            );
+          })}
+          {isOpen && !canView && (
+            <div style={{padding:'6px 22px',fontSize:11,color:'var(--text-faint)',fontStyle:'italic'}}>🔒 Solo miembros</div>
+          )}
+        </div>
+        );
+      })}
+    </div>
+
+    <div style={S.userBar}>
+      <Avatar name={user?.name} size={34}/>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={S.userName}>{user?.name}</div>
+        <div style={{display:'flex',gap:4,marginTop:3}}>
+          <RoleBadge role={user?.role} style={{fontSize:7,padding:'1px 5px'}}/>
+          {user?.level && <span style={{fontSize:8,color:'var(--text-dim)',fontFamily:"'JetBrains Mono',monospace"}}>{user.level}</span>}
+        </div>
+      </div>
+      <div style={{display:'flex',flexDirection:'column',gap:3}}>
+        <button style={{background:'none',border:'none',color:'var(--text-dim)',cursor:'pointer',fontSize:10,padding:'2px 4px',fontFamily:"'JetBrains Mono',monospace"}}
+          onClick={onToggleAdmin} title="Toggle admin role">
+          {user?.role==='admin'?'👑':'🔧'}
+        </button>
+        <button style={{background:'none',border:'none',color:'var(--text-dim)',cursor:'pointer',fontSize:10,padding:'2px 4px',fontFamily:"'JetBrains Mono',monospace"}}
+          onClick={onToggleMember} title="Toggle member role">
+          ⭐
+        </button>
+        <button style={{background:'none',border:'none',color:'var(--text-dim)',cursor:'pointer',fontSize:10,padding:'2px 4px'}}
+          onClick={onLogout} title="Logout">🚪</button>
+      </div>
+    </div>
+  </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN APP
+// ═══════════════════════════════════════════════════════════════════════════
+function App() {
+  const [user, setUser] = useState(()=>DB.getUser());
+  const [data, setData] = useState(()=>DB.getData());
+  const [posts, setPosts] = useState(()=>DB.getPosts());
+  const [comments, setComments] = useState(()=>DB.getComments());
+  const [marketplace, setMarketplace] = useState(()=>DB.getMarketplace());
+  const [activeChannelId, setActiveChannelId] = useState(null);
+  const [showCatModal, setShowCatModal] = useState(null);
+  const [showChModal, setShowChModal] = useState(null);
+  const [showPostModal, setShowPostModal] = useState(false);
+  const [showMkModal, setShowMkModal] = useState(false);
+
+  // Init seed data
+  useEffect(()=>{if(!data){const d=seedData();setData(d);DB.setData(d);}}, []);
+  useEffect(()=>{if(Object.keys(posts).length===0&&data){const p=seedPosts();setPosts(p);DB.setPosts(p);}}, [data]);
+  useEffect(()=>{if(Object.keys(comments).length===0&&data){const c=seedComments();setComments(c);DB.setComments(c);}}, [data]);
+  useEffect(()=>{if(marketplace.length===0&&data){const m=seedMarketplace();setMarketplace(m);DB.setMarketplace(m);}}, [data]);
+
+  // Persist
+  useEffect(()=>{if(user)DB.setUser(user);},[user]);
+  useEffect(()=>{if(data)DB.setData(data);},[data]);
+  useEffect(()=>{DB.setPosts(posts);},[posts]);
+  useEffect(()=>{DB.setComments(comments);},[comments]);
+  useEffect(()=>{DB.setMarketplace(marketplace);},[marketplace]);
+
+  const handleLogin = (u) => { setUser(u); };
+  const handleLogout = () => { setUser(null); DB.setUser(null); };
+
+  if(!user) return <LoginScreen onLogin={handleLogin}/>;
+  if(!data) return null;
+
+  const channel = data.channels.find(c=>c.id===activeChannelId);
+  const channelCategory = channel ? data.categories.find(cat=>cat.id===channel.categoryId) : null;
+  const isPrivateChannel = channelCategory?.visibility === 'private';
+  const canViewChannel = !isPrivateChannel || user.role === 'admin' || user.role === 'member';
+  const isAdmin = user.role === 'admin';
+
+  // Category CRUD
+  const saveCategory = (cat) => {
+    setData(prev=>{
+      const idx = prev.categories.findIndex(c=>c.id===cat.id);
+      if(idx>=0){const cats=[...prev.categories];cats[idx]=cat;return{...prev,categories:cats};}
+      return {...prev, categories:[...prev.categories, {...cat,order:prev.categories.length}]};
+    });
+  };
+  // Channel CRUD
+  const saveChannel = (ch) => {
+    setData(prev=>{
+      const idx = prev.channels.findIndex(c=>c.id===ch.id);
+      if(idx>=0){const chs=[...prev.channels];chs[idx]=ch;return{...prev,channels:chs};}
+      return {...prev, channels:[...prev.channels, ch]};
+    });
+    setActiveChannelId(ch.id);
+  };
+  const deleteChannel = (id) => {
+    if(!confirm('¿Eliminar este canal?')) return;
+    setData(prev=>({...prev,channels:prev.channels.filter(c=>c.id!==id)}));
+    if(activeChannelId===id) setActiveChannelId(null);
+  };
+  // Post CRUD
+  const createPost = (channelId, {title,body,pinned}) => {
+    const post = {id:'p-'+uid(),title,body,pinned,author:user.name,authorRole:user.role,createdAt:new Date().toISOString()};
+    setPosts(prev=>({...prev,[channelId]:[post,...(prev[channelId]||[])]}));
+  };
+  const deletePost = (channelId, postId) => {
+    if(!confirm('¿Eliminar?')) return;
+    setPosts(prev=>({...prev,[channelId]:(prev[channelId]||[]).filter(p=>p.id!==postId)}));
+    setComments(prev=>{const n={...prev};delete n[postId];return n;});
+  };
+  // Comment CRUD
+  const addComment = (postId, text) => {
+    const c = {id:'c-'+uid(),text,author:user.name,authorRole:user.role,createdAt:new Date().toISOString()};
+    setComments(prev=>({...prev,[postId]:[...(prev[postId]||[]),c]}));
+  };
+  const deleteComment = (postId, commentId) => {
+    setComments(prev=>({...prev,[postId]:(prev[postId]||[]).filter(c=>c.id!==commentId)}));
+  };
+  // Marketplace CRUD
+  const createListing = ({type,title,body,location,contact,price}) => {
+    const l = {id:'mk-'+uid(),type,title,body,location,contact,price,author:user.name,authorRole:user.role,createdAt:new Date().toISOString(),active:true};
+    setMarketplace(prev=>[l,...prev]);
+  };
+  const deleteListing = (id) => {
+    if(!confirm('¿Eliminar publicación?')) return;
+    setMarketplace(prev=>prev.filter(l=>l.id!==id));
+  };
+
+  const toggleRole = (targetRole) => {
+    setUser(prev => ({...prev, role: prev.role === targetRole ? 'guest' : targetRole}));
+  };
+
+  // Channel type label for header
+  const channelTypeInfo = channel ? CHANNEL_TYPES[channel.type] : null;
+
+  return (
+  <div style={S.app}>
+    <Sidebar data={data} user={user} activeChannelId={activeChannelId}
+      onSelectChannel={setActiveChannelId}
+      onAddCategory={()=>setShowCatModal({editing:null})}
+      onEditCategory={(cat)=>setShowCatModal({editing:cat})}
+      onAddChannel={(catId)=>setShowChModal({categoryId:catId})}
+      onLogout={handleLogout}
+      onToggleAdmin={()=>toggleRole('admin')}
+      onToggleMember={()=>toggleRole('member')}
+    />
+
+    <div style={S.main}>
+      {!channel ? (
+        <div style={{...S.empty,height:'100%'}}>
+          <div style={{fontSize:64,opacity:0.3,marginBottom:8}}>🧗</div>
+          <div style={{fontSize:20,fontWeight:700,color:'var(--text)',fontFamily:"'Outfit',sans-serif",marginBottom:4}}>Bienvenido a RAL</div>
+          <div style={{fontSize:13,color:'var(--text-dim)',maxWidth:400,textAlign:'center',lineHeight:1.6}}>
+            Seleccioná un canal de la barra lateral para empezar. Explorá los canales públicos o hazte miembro para acceder al contenido exclusivo.
+          </div>
+          <div style={{display:'flex',gap:4,marginTop:12}}>
+            <span style={{...S.ghostBtn,cursor:'default'}}>🔧 = toggle admin</span>
+            <span style={{...S.ghostBtn,cursor:'default'}}>⭐ = toggle member</span>
+            <span style={{...S.ghostBtn,cursor:'default'}}>🚪 = logout</span>
+          </div>
+        </div>
+      ) : !canViewChannel ? (
+        <LockedView onUpgrade={()=>toggleRole('member')}/>
+      ) : (
+        <>
+          <div style={S.header}>
+            <div style={S.headerInfo}>
+              <div style={S.headerTitle}>{channel.name}</div>
+              <div style={S.headerDesc}>
+                {channelTypeInfo?.desc || 'Canal'}
+                {channelCategory && ` · ${channelCategory.emoji} ${channelCategory.name}`}
+              </div>
+            </div>
+            <div style={{display:'flex',gap:6,alignItems:'center'}}>
+              {isPrivateChannel && <span style={{...S.headerBadge,color:'var(--member)',borderColor:'var(--member)',background:'var(--member-bg)'}}>🔒 Miembros</span>}
+              {isAdmin && <button style={{...S.ghostBtn,fontSize:10}} onClick={()=>deleteChannel(channel.id)}>🗑</button>}
+            </div>
+          </div>
+          <div style={S.content}>
+            {channel.type === 'announcement' && (
+              <AnnouncementView channel={channel} posts={posts[channel.id]||[]} user={user}
+                onNewPost={()=>setShowPostModal(true)} onDeletePost={(pid)=>deletePost(channel.id,pid)}/>
+            )}
+            {channel.type === 'discussion' && (
+              <DiscussionView channel={channel} posts={posts[channel.id]||[]} comments={comments} user={user}
+                onNewPost={()=>setShowPostModal(true)} onDeletePost={(pid)=>deletePost(channel.id,pid)}
+                onAddComment={addComment} onDeleteComment={deleteComment}/>
+            )}
+            {channel.type === 'marketplace' && (
+              <MarketplaceView listings={marketplace} user={user}
+                onNew={()=>setShowMkModal(true)} onDelete={deleteListing}/>
+            )}
+            {channel.type === 'resource' && (
+              <ResourceView channel={channel} posts={posts[channel.id]||[]} user={user}
+                onNewPost={()=>setShowPostModal(true)} onDeletePost={(pid)=>deletePost(channel.id,pid)}/>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+
+    {showCatModal && <CategoryModal onClose={()=>setShowCatModal(null)} onSave={saveCategory} editing={showCatModal.editing}/>}
+    {showChModal && <ChannelModal onClose={()=>setShowChModal(null)} onSave={saveChannel} categoryId={showChModal.categoryId}/>}
+    {showPostModal && channel && <PostModal onClose={()=>setShowPostModal(false)} onSave={(p)=>createPost(channel.id,p)} channelName={channel.name}/>}
+    {showMkModal && <MarketplaceModal onClose={()=>setShowMkModal(false)} onSave={createListing} user={user}/>}
+  </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
