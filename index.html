@@ -389,90 +389,153 @@ function TestModal({ onClose, onPass }) {
   const [passed, setPassed] = useState(false);
   const [advice, setAdvice] = useState('');
 
+  const TEST_QUESTIONS = [
+    { id: 'eng', emoji: '🎓', text: '¿Cuál es tu nivel de inglés?', options: [
+        { label: 'A1 (Muy básico)', points: 0, emoji: '❌' },
+        { label: 'A2 (Básico)', points: 5, emoji: '⚠️' },
+        { label: 'B1 (Intermedio - suficiente para instrucciones)', points: 15, emoji: '✅' },
+        { label: 'B2 (Intermedio alto)', points: 20, emoji: '✅✅' },
+        { label: 'C1+ (Avanzado o nativo)', points: 25, emoji: '🏆' }
+    ]},
+    { id: 'climb', emoji: '🧗', text: 'Experiencia previa en escalada o altura', options: [
+        { label: 'Ninguna', points: 0, emoji: '❌' },
+        { label: 'Básica (he escalado algunas veces)', points: 10, emoji: '✅' },
+        { label: 'Moderada (escalada deportiva o trabajos ocasionales)', points: 18, emoji: '✅✅' },
+        { label: 'Avanzada (escalador regular o profesional)', points: 25, emoji: '🏆' }
+    ]},
+    { id: 'trade', emoji: '🔧', text: '¿Tienes algún oficio? (carpintero, pintor, etc.)', options: [
+        { label: 'No', points: 0, emoji: '❌' },
+        { label: 'Sí, pero poca experiencia', points: 10, emoji: '✅' },
+        { label: 'Sí, varios años', points: 20, emoji: '🏆' }
+    ]},
+    { id: 'fitness', emoji: '💪', text: 'Describe tu condición física actual', options: [
+        { label: 'Mala (sedentario)', points: 0, emoji: '❌' },
+        { label: 'Regular (ejercicio ocasional)', points: 6, emoji: '⚠️' },
+        { label: 'Buena (entreno 2-3 veces/semana)', points: 15, emoji: '✅' },
+        { label: 'Muy buena (4+ veces/semana)', points: 20, emoji: '✅✅' },
+        { label: 'Atleta', points: 25, emoji: '🏆' }
+    ]},
+    { id: 'workexp', emoji: '🏗️', text: 'Experiencia laboral en trabajos físicos', options: [
+        { label: 'Ninguna (oficinista, sin manual)', points: 0, emoji: '❌' },
+        { label: 'Alguna (trabajos eventuales físicos)', points: 10, emoji: '✅' },
+        { label: 'Bastante (años en construcción, mantenimiento)', points: 20, emoji: '🏆' }
+    ]},
+    { id: 'teamwork', emoji: '🤝', text: 'Trabajo en equipo y comunicación', options: [
+        { label: 'Poco (prefiero solo)', points: 0, emoji: '❌' },
+        { label: 'Regular (lo necesario)', points: 6, emoji: '⚠️' },
+        { label: 'Bien (colaboro activamente)', points: 15, emoji: '✅' },
+        { label: 'Muy bien (liderazgo, comunicación clara)', points: 20, emoji: '🏆' }
+    ]}
+  ];
+
   const handleAnswer = (qId, points) => {
     setAnswers(prev => ({...prev, [qId]: points }));
   };
 
   const calculateScore = () => {
     let total = 0;
-    let max = 0;
     TEST_QUESTIONS.forEach(q => {
       const selected = answers[q.id];
       if (selected !== undefined) total += selected;
-      max += Math.max(...q.options.map(o => o.points));
     });
-    const percent = (total / max) * 100;
-    const passedFlag = percent >= 80;
+    const maxPossible = 25+25+20+25+20+20; // = 135, pero mejor usar suma de máximos
+    const maxPoints = TEST_QUESTIONS.reduce((sum, q) => sum + Math.max(...q.options.map(o => o.points)), 0);
+    const percent = (total / maxPoints) * 100;
+    const passedFlag = total >= 70; // Umbral fijo de 70 puntos (no porcentaje)
     let adviceMsg = '';
     if (!passedFlag) {
       let missing = [];
-      if ((answers.eng||0) < 60) missing.push('🔤 Inglés (necesitas al menos B1)');
-      if ((answers.fitness||0) < 60) missing.push('💪 Condición física (entrena regularmente)');
-      if ((answers.trade||0) < 30) missing.push('🛠️ Oficio o habilidad manual (considera aprender pintura, carpintería básica)');
-      if ((answers.climb||0) < 30) missing.push('🧗 Experiencia en altura (puedes practicar en gimnasios de escalada)');
-      if ((answers.workexp||0) < 30) missing.push('🏗️ Experiencia laboral física (busca trabajos eventuales en construcción)');
-      if (missing.length === 0) missing.push('Revisa tus respuestas, el test requiere 80% de aptitud general.');
-      adviceMsg = `❌ No alcanzaste el puntaje mínimo (${Math.round(percent)}%). Para ser un buen candidato a rope access, te recomendamos mejorar:\n${missing.join('\n')}\n\n📘 Recursos: Test de inglés gratuito: https://preply.com/en/language-tests/english | Ejercicios de condición física: calistenia básica 3 veces por semana.`;
+      if ((answers.eng||0) < 15) missing.push('🎓 Inglés (necesitas al menos B1)');
+      if ((answers.fitness||0) < 15) missing.push('💪 Condición física (entrena 2-3 veces/semana)');
+      if ((answers.trade||0) < 10) missing.push('🔧 Oficio o habilidad manual');
+      if ((answers.climb||0) < 10) missing.push('🧗 Practica escalada en gimnasio');
+      if ((answers.workexp||0) < 10) missing.push('🏗️ Busca trabajos eventuales físicos');
+      if ((answers.teamwork||0) < 15) missing.push('🤝 Mejora comunicación en equipo');
+      adviceMsg = `❌ No alcanzaste (${total}/70 puntos). Para ser un buen candidato a rope access:\n${missing.join('\n')}\n\n📘 Recursos: Test de inglés gratuito → preply.com | Ejercicios de calistenia 3 veces/semana.`;
     } else {
-      adviceMsg = `✅ ¡Excelente! Obtuviste ${Math.round(percent)}%. Tienes el perfil adecuado para iniciar el curso IRATA.`;
+      adviceMsg = `✅ ¡Excelente! Obtuviste ${total}/70 puntos. Tienes el perfil adecuado para iniciar el curso IRATA.`;
     }
-    setScore(percent);
+    setScore(total);
     setPassed(passedFlag);
     setAdvice(adviceMsg);
     setSubmitted(true);
     if (passedFlag) {
-      onPass(); // desbloquear secciones
+      onPass();
     }
   };
 
   const allAnswered = TEST_QUESTIONS.every(q => answers[q.id] !== undefined);
+  const answeredCount = Object.keys(answers).length;
+  const progress = (answeredCount / TEST_QUESTIONS.length) * 100;
 
   return (
     <div style={S.overlay} onClick={onClose}>
-      <div style={{...S.modal, maxWidth: 600}} onClick={e=>e.stopPropagation()} className="fade-in">
+      <div style={{...S.modal, maxWidth: 650}} onClick={e=>e.stopPropagation()} className="fade-in">
         <div style={S.modalHeader}>
-          <div><div style={S.modalKicker}>Test de aptitud</div><div style={S.modalTitle}>¿Me conviene hacer el curso de rope access?</div></div>
+          <div>
+            <div style={S.modalKicker}>🧗 Test de aptitud · 20-30 años</div>
+            <div style={S.modalTitle}>¿Me conviene hacer el curso de rope access?</div>
+          </div>
           <button style={S.closeBtn} onClick={onClose}>×</button>
         </div>
         <div style={S.modalBody}>
           {!submitted ? (
             <>
+              {/* Barra de progreso */}
+              <div style={{background:'var(--border)', height:6, borderRadius:3, marginBottom:20}}>
+                <div style={{width:`${progress}%`, background:'var(--accent)', height:6, borderRadius:3, transition:'width 0.2s'}}/>
+              </div>
               {TEST_QUESTIONS.map(q => (
-                <div key={q.id} style={{marginBottom: 20}}>
-                  <label style={S.label}>{q.text}</label>
+                <div key={q.id} style={{marginBottom: 24}}>
+                  <label style={S.label}>{q.emoji} {q.text}</label>
                   {q.options.map(opt => (
                     <div key={opt.label}
-                      style={{...S.testOption, ...(answers[q.id] === opt.points ? S.testOptionSelected : {})}}
+                      style={{
+                        ...S.testOption,
+                        background: answers[q.id] === opt.points ? 'var(--accent-bg)' : 'var(--bg-raised)',
+                        borderColor: answers[q.id] === opt.points ? 'var(--accent)' : 'var(--border)',
+                        marginBottom: 6,
+                        padding: '10px 14px',
+                        borderRadius: 'var(--radius)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}
                       onClick={() => handleAnswer(q.id, opt.points)}>
-                      <span>{opt.label}</span>
-                      <span style={S.testScore}>{opt.points} pts</span>
+                      <span><span style={{fontSize:16,marginRight:8}}>{opt.emoji}</span> {opt.label}</span>
+                      <span style={{fontSize:12, fontWeight:600, color:'var(--accent-text)'}}>{opt.points} pts</span>
                     </div>
                   ))}
                 </div>
               ))}
-              <button style={{...S.primaryBtn, width: '100%', marginTop: 8}} disabled={!allAnswered} onClick={calculateScore}>
-                Calificar mi perfil
+              <button style={{...S.primaryBtn, width: '100%', padding: '12px', fontSize: 14, marginTop: 8}} 
+                disabled={!allAnswered} onClick={calculateScore}>
+                🎯 Calificar mi perfil
               </button>
             </>
           ) : (
             <div>
               <div style={{textAlign: 'center', marginBottom: 20}}>
-                <div style={{fontSize: 48}}>{passed ? '🎉' : '📘'}</div>
-                <div style={{fontSize: 24, fontWeight: 700, marginTop: 8}}>{Math.round(score)}%</div>
-                <div style={{color: passed ? 'var(--success)' : 'var(--warn)', fontWeight: 600}}>
-                  {passed ? '¡Aprobado! Secciones desbloqueadas' : 'No alcanzaste el mínimo (80%)'}
+                <div style={{fontSize: 56}}>{passed ? '🎉🏆' : '📘💪'}</div>
+                <div style={{fontSize: 28, fontWeight: 800, marginTop: 8}}>{score}/70</div>
+                <div style={{color: passed ? 'var(--success)' : 'var(--warn)', fontWeight: 700, fontSize: 14}}>
+                  {passed ? '✅ ¡Aprobado! Se desbloquean secciones privadas' : '❌ No alcanzaste el mínimo (70 puntos)'}
                 </div>
               </div>
-              <div style={S.adviceCard}>
+              <div style={{...S.adviceCard, background: 'var(--bg-raised)', padding: '16px', borderRadius: 'var(--radius-lg)', marginBottom: 16}}>
                 <pre style={{whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: 13, lineHeight: 1.5, margin: 0}}>{advice}</pre>
               </div>
+              <div style={{fontSize: 11, color: 'var(--text-faint)', textAlign: 'center', marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12}}>
+                📌 Este test está basado en la experiencia de <strong>Lionel Melo</strong>, técnico IRATA Nivel 3 desde 2017 e instructor desde 2024.
+              </div>
               {passed && (
-                <button style={{...S.primaryBtn, width: '100%', marginTop: 16}} onClick={onClose}>
-                  Continuar a la comunidad →
+                <button style={{...S.primaryBtn, width: '100%', marginTop: 16, padding: '12px'}} onClick={onClose}>
+                  🧗 Continuar a la comunidad →
                 </button>
               )}
               {!passed && (
-                <button style={{...S.cancelBtn, width: '100%', marginTop: 16}} onClick={onClose}>
+                <button style={{...S.cancelBtn, width: '100%', marginTop: 16, padding: '12px'}} onClick={onClose}>
                   Cerrar (puedes reintentar luego)
                 </button>
               )}
@@ -616,11 +679,9 @@ function App() {
   useEffect(()=>{DB.setComments(comments);},[comments]);
   useEffect(()=>{DB.setMarketplace(marketplace);},[marketplace]);
 
-  const handleLogin = (u) => { setUser(u); };
-  const handleLogout = () => { setUser(null); DB.setUser(null); };
   const handleTestPass = () => {
-    setUser(prev => ({ ...prev, testPassed: true, role: prev.role === 'guest' ? 'member' : prev.role }));
-  };
+  setUser(prev => ({ ...prev, testPassed: true, role: prev.role === 'guest' ? 'member' : prev.role }));
+};
 
   if(!user) return <LoginScreen onLogin={handleLogin}/>;
   if(!data) return null;
