@@ -68,7 +68,7 @@ const DB = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CONSTANTS & SEED DATA (igual que antes)
+// CONSTANTS & SEED DATA
 // ═══════════════════════════════════════════════════════════════════════════
 const ROLES = {admin:'Admin', member:'Member', guest:'Guest'};
 const ROLE_COLORS = {admin:'var(--danger)', member:'var(--member)', guest:'var(--text-dim)'};
@@ -168,7 +168,7 @@ function timeAgo(iso) {
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// STYLES (omitido por longitud, igual que antes pero añadimos estilos para test)
+// STYLES OBJECT
 // ═══════════════════════════════════════════════════════════════════════════
 const S = {
   app:{display:'flex',height:'100vh',overflow:'hidden',background:'var(--bg-deep)'},
@@ -262,7 +262,6 @@ const S = {
   onlineBar:{display:'flex',gap:6,padding:'8px 14px',alignItems:'center',borderBottom:'1px solid var(--border)'},
   onlineDot:{width:8,height:8,borderRadius:'50%',background:'var(--success)',flexShrink:0,animation:'pulse 2s ease infinite'},
   onlineText:{fontSize:10,color:'var(--text-dim)',fontFamily:"'JetBrains Mono',monospace",fontWeight:600,letterSpacing:0.5},
-  // Test specific
   testOption:{padding:'12px 14px',background:'var(--bg-raised)',border:'1px solid var(--border)',borderRadius:'var(--radius)',marginBottom:8,cursor:'pointer',transition:'all 0.1s',display:'flex',alignItems:'center',justifyContent:'space-between'},
   testOptionSelected:{background:'var(--accent-bg)',borderColor:'var(--accent)'},
   testScore:{fontSize:13,fontWeight:700,color:'var(--accent-text)',marginLeft:10},
@@ -270,7 +269,7 @@ const S = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// AVATAR HELPER (igual)
+// AVATAR & ROLE BADGE
 // ═══════════════════════════════════════════════════════════════════════════
 function getAvatarColor(name) {
   const colors = ['#e74c3c','#2ecc40','#f1c40f','#6cb4ee','#e84393','#22d3ee','#a78bfa','#f97316','#14b8a6','#8b5cf6'];
@@ -290,7 +289,7 @@ function RoleBadge({role,style:extra}) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// LOGIN SCREEN (igual pero cargamos testPassed)
+// LOGIN SCREEN
 // ═══════════════════════════════════════════════════════════════════════════
 function LoginScreen({onLogin}) {
   const [name, setName] = useState('');
@@ -341,47 +340,8 @@ function LoginScreen({onLogin}) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// TEST MODAL (preguntas basadas en el post de Lionel)
+// TEST MODAL (con emojis, puntos actualizados y umbral 70)
 // ═══════════════════════════════════════════════════════════════════════════
-const TEST_QUESTIONS = [
-  { id: 'eng', text: '¿Cuál es tu nivel de inglés?', options: [
-      { label: 'A1 (Muy básico)', points: 10 },
-      { label: 'A2 (Básico)', points: 20 },
-      { label: 'B1 (Intermedio - suficiente para instrucciones)', points: 60 },
-      { label: 'B2 (Intermedio alto)', points: 85 },
-      { label: 'C1 (Avanzado) o nativo', points: 100 }
-  ]},
-  { id: 'climb', text: 'Experiencia previa en escalada o trabajo en altura', options: [
-      { label: 'Ninguna', points: 0 },
-      { label: 'Básica (he escalado algunas veces)', points: 30 },
-      { label: 'Moderada (escalada deportiva o trabajos en altura ocasionales)', points: 60 },
-      { label: 'Avanzada (escalador regular o experiencia profesional en altura)', points: 90 }
-  ]},
-  { id: 'trade', text: '¿Tienes algún oficio (carpintero, pintor, mecánico, etc.)?', options: [
-      { label: 'No', points: 0 },
-      { label: 'Sí, pero poca experiencia', points: 30 },
-      { label: 'Sí, varios años de oficio', points: 80 }
-  ]},
-  { id: 'fitness', text: 'Describe tu condición física actual', options: [
-      { label: 'Mala (sedentario, me canso fácil)', points: 0 },
-      { label: 'Regular (hago algo de ejercicio ocasional)', points: 20 },
-      { label: 'Buena (entreno 2-3 veces por semana)', points: 60 },
-      { label: 'Muy buena (entreno 4+ veces, buena fuerza/resistencia)', points: 90 },
-      { label: 'Atleta (excelente condición)', points: 100 }
-  ]},
-  { id: 'workexp', text: 'Experiencia laboral en trabajos físicos o construcción', options: [
-      { label: 'Ninguna (oficinista, sin experiencia manual)', points: 0 },
-      { label: 'Alguna (trabajos eventuales físicos)', points: 30 },
-      { label: 'Bastante (años en construcción, mantenimiento, etc.)', points: 70 }
-  ]},
-  { id: 'teamwork', text: '¿Trabajas bien en equipo y te comunicas efectivamente?', options: [
-      { label: 'Poco (prefiero trabajar solo)', points: 10 },
-      { label: 'Regular (me comunico lo necesario)', points: 40 },
-      { label: 'Bien (colaboro activamente)', points: 70 },
-      { label: 'Muy bien (liderazgo, comunicación clara)', points: 100 }
-  ]}
-];
-
 function TestModal({ onClose, onPass }) {
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
@@ -438,10 +398,7 @@ function TestModal({ onClose, onPass }) {
       const selected = answers[q.id];
       if (selected !== undefined) total += selected;
     });
-    const maxPossible = 25+25+20+25+20+20; // = 135, pero mejor usar suma de máximos
-    const maxPoints = TEST_QUESTIONS.reduce((sum, q) => sum + Math.max(...q.options.map(o => o.points)), 0);
-    const percent = (total / maxPoints) * 100;
-    const passedFlag = total >= 70; // Umbral fijo de 70 puntos (no porcentaje)
+    const passedFlag = total >= 70;
     let adviceMsg = '';
     if (!passedFlag) {
       let missing = [];
@@ -481,7 +438,6 @@ function TestModal({ onClose, onPass }) {
         <div style={S.modalBody}>
           {!submitted ? (
             <>
-              {/* Barra de progreso */}
               <div style={{background:'var(--border)', height:6, borderRadius:3, marginBottom:20}}>
                 <div style={{width:`${progress}%`, background:'var(--accent)', height:6, borderRadius:3, transition:'width 0.2s'}}/>
               </div>
@@ -548,20 +504,388 @@ function TestModal({ onClose, onPass }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// MODALES (Category, Channel, Post, Marketplace) - igual que antes, omitido por brevedad pero se incluyen completos en el código final
+// MODALES: Category, Channel, Post, Marketplace
 // ═══════════════════════════════════════════════════════════════════════════
-// (Se incluirán en la respuesta final, aquí los dejo como estaban originalmente para no duplicar)
-// Por razones de longitud, en esta respuesta pondré el código completo al final.
-// Continuamos con los componentes principales...
+function CategoryModal({onClose, onSave, editing}) {
+  const [name,setName]=useState(editing?.name||'');
+  const [emoji,setEmoji]=useState(editing?.emoji||'📁');
+  const [vis,setVis]=useState(editing?.visibility||'public');
+  const save=()=>{if(!name.trim())return;onSave({id:editing?.id||'cat-'+uid(),name:name.trim(),emoji,visibility:vis,order:editing?.order??999,system:false});onClose();};
+  return (
+  <div style={S.overlay} onClick={onClose}>
+    <div style={{...S.modal,...S.modalSm}} onClick={e=>e.stopPropagation()} className="fade-in">
+      <div style={S.modalHeader}>
+        <div><div style={S.modalKicker}>{editing?'Editar':'Nueva'} categoría</div><div style={S.modalTitle}>{editing?'Editar':'Crear'} categoría</div></div>
+        <button style={S.closeBtn} onClick={onClose}>×</button>
+      </div>
+      <div style={S.modalBody}>
+        <label style={S.label}>Nombre *</label>
+        <input style={S.input} value={name} onChange={e=>setName(e.target.value)} autoFocus/>
+        <label style={S.label}>Visibilidad</label>
+        <div style={{display:'flex',gap:8,marginBottom:14}}>
+          <button style={{...S.ghostBtn,...(vis==='public'?{background:'var(--accent-bg)',borderColor:'var(--accent)',color:'var(--accent-text)'}:{})}} onClick={()=>setVis('public')}>🌍 Pública</button>
+          <button style={{...S.ghostBtn,...(vis==='private'?{background:'var(--member-bg)',borderColor:'var(--member)',color:'var(--member)'}:{})}} onClick={()=>setVis('private')}>🔒 Privada</button>
+        </div>
+        <label style={S.label}>Emoji</label>
+        <div style={S.emojiGrid}>
+          {EMOJI_CATS.map(em=><div key={em} style={{...S.emojiCell,...(emoji===em?S.emojiCellActive:{})}} onClick={()=>setEmoji(em)}>{em}</div>)}
+        </div>
+      </div>
+      <div style={S.modalFooter}>
+        <button style={S.cancelBtn} onClick={onClose}>Cancelar</button>
+        <button style={{...S.primaryBtn,opacity:name.trim()?1:0.5}} disabled={!name.trim()} onClick={save}>{editing?'Guardar':'Crear'}</button>
+      </div>
+    </div>
+  </div>
+  );
+}
+
+function ChannelModal({onClose, onSave, categoryId, editing}) {
+  const [name,setName]=useState(editing?.name||'');
+  const [type,setType]=useState(editing?.type||'discussion');
+  const save=()=>{if(!name.trim())return;onSave({id:editing?.id||'ch-'+uid(),name:name.trim(),categoryId,type,createdAt:editing?.createdAt||new Date().toISOString()});onClose();};
+  return (
+  <div style={S.overlay} onClick={onClose}>
+    <div style={{...S.modal,...S.modalSm}} onClick={e=>e.stopPropagation()} className="fade-in">
+      <div style={S.modalHeader}>
+        <div><div style={S.modalKicker}>{editing?'Editar':'Nuevo'} canal</div><div style={S.modalTitle}>{editing?'Editar':'Crear'} canal</div></div>
+        <button style={S.closeBtn} onClick={onClose}>×</button>
+      </div>
+      <div style={S.modalBody}>
+        <label style={S.label}>Nombre del canal *</label>
+        <input style={S.input} value={name} onChange={e=>setName(e.target.value)} placeholder="ej: 📢 noticias" autoFocus/>
+        <label style={S.label}>Tipo de canal</label>
+        <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:14}}>
+          {Object.values(CHANNEL_TYPES).map(ct=>(
+          <div key={ct.id} style={{...S.ghostBtn,justifyContent:'flex-start',width:'100%',padding:'10px 12px',
+            ...(type===ct.id?{background:'var(--accent-bg)',borderColor:'var(--accent)',color:'var(--accent-text)'}:{})}}
+            onClick={()=>setType(ct.id)}>
+            <span style={{fontSize:14}}>{ct.label.split(' ')[0]}</span>
+            <span style={{flex:1,textAlign:'left'}}>{ct.label.split(' ').slice(1).join(' ')}</span>
+            <span style={{fontSize:9,color:'var(--text-faint)',textTransform:'none',letterSpacing:0,fontWeight:400}}>{ct.desc}</span>
+          </div>
+          ))}
+        </div>
+      </div>
+      <div style={S.modalFooter}>
+        <button style={S.cancelBtn} onClick={onClose}>Cancelar</button>
+        <button style={{...S.primaryBtn,opacity:name.trim()?1:0.5}} disabled={!name.trim()} onClick={save}>{editing?'Guardar':'Crear'}</button>
+      </div>
+    </div>
+  </div>
+  );
+}
+
+function PostModal({onClose, onSave, channelName, editing}) {
+  const [title,setTitle]=useState(editing?.title||'');
+  const [body,setBody]=useState(editing?.body||'');
+  const [pinned,setPinned]=useState(editing?.pinned||false);
+  const save=()=>{if(!title.trim()||!body.trim())return;onSave({title:title.trim(),body:body.trim(),pinned});onClose();};
+  return (
+  <div style={S.overlay} onClick={onClose}>
+    <div style={S.modal} onClick={e=>e.stopPropagation()} className="fade-in">
+      <div style={S.modalHeader}>
+        <div><div style={S.modalKicker}>{editing?'Editar':'Nuevo'} post en {channelName}</div><div style={S.modalTitle}>{editing?'Editar':'Crear'} publicación</div></div>
+        <button style={S.closeBtn} onClick={onClose}>×</button>
+      </div>
+      <div style={S.modalBody}>
+        <label style={S.label}>Título *</label>
+        <input style={S.input} value={title} onChange={e=>setTitle(e.target.value)} autoFocus/>
+        <label style={S.label}>Contenido *</label>
+        <textarea style={{...S.textarea,minHeight:140}} value={body} onChange={e=>setBody(e.target.value)} rows={6}/>
+        <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',fontSize:13,color:'var(--text-muted)'}}>
+          <input type="checkbox" checked={pinned} onChange={e=>setPinned(e.target.checked)} style={{accentColor:'var(--accent)'}}/>
+          📌 Fijar esta publicación arriba
+        </label>
+      </div>
+      <div style={S.modalFooter}>
+        <button style={S.cancelBtn} onClick={onClose}>Cancelar</button>
+        <button style={{...S.primaryBtn,opacity:(title.trim()&&body.trim())?1:0.5}} onClick={save}>Publicar</button>
+      </div>
+    </div>
+  </div>
+  );
+}
+
+function MarketplaceModal({onClose, onSave, user, editing}) {
+  const [type,setType]=useState(editing?.type||'job');
+  const [title,setTitle]=useState(editing?.title||'');
+  const [body,setBody]=useState(editing?.body||'');
+  const [location,setLoc]=useState(editing?.location||user?.country||'');
+  const [contact,setContact]=useState(editing?.contact||'');
+  const [price,setPrice]=useState(editing?.price||'');
+  const save=()=>{
+    if(!title.trim()||!body.trim())return;
+    onSave({type,title:title.trim(),body:body.trim(),location:location.trim(),contact:contact.trim(),price:price.trim()});
+    onClose();
+  };
+  return (
+  <div style={S.overlay} onClick={onClose}>
+    <div style={S.modal} onClick={e=>e.stopPropagation()} className="fade-in">
+      <div style={S.modalHeader}>
+        <div><div style={S.modalKicker}>{editing?'Editar':'Nueva'} publicación</div><div style={S.modalTitle}>Marketplace</div></div>
+        <button style={S.closeBtn} onClick={onClose}>×</button>
+      </div>
+      <div style={S.modalBody}>
+        <label style={S.label}>Tipo *</label>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:6,marginBottom:14}}>
+          {MARKETPLACE_TYPES.map(t=>(
+          <div key={t.id} style={{...S.ghostBtn,justifyContent:'center',
+            ...(type===t.id?{background:'var(--accent-bg)',borderColor:'var(--accent)',color:'var(--accent-text)'}:{})}}
+            onClick={()=>setType(t.id)}>{t.label}</div>
+          ))}
+        </div>
+        <label style={S.label}>Título *</label>
+        <input style={S.input} value={title} onChange={e=>setTitle(e.target.value)} autoFocus/>
+        <label style={S.label}>Descripción *</label>
+        <textarea style={S.textarea} value={body} onChange={e=>setBody(e.target.value)} rows={4}/>
+        <div style={S.row2}>
+          <div><label style={S.label}>Ubicación</label><input style={S.input} value={location} onChange={e=>setLoc(e.target.value)} placeholder="Ciudad, País"/></div>
+          <div><label style={S.label}>Precio</label><input style={S.input} value={price} onChange={e=>setPrice(e.target.value)} placeholder="$120 USD"/></div>
+        </div>
+        <label style={S.label}>Contacto</label>
+        <input style={S.input} value={contact} onChange={e=>setContact(e.target.value)} placeholder="WhatsApp, email, etc."/>
+      </div>
+      <div style={S.modalFooter}>
+        <button style={S.cancelBtn} onClick={onClose}>Cancelar</button>
+        <button style={{...S.primaryBtn,opacity:(title.trim()&&body.trim())?1:0.5}} onClick={save}>Publicar</button>
+      </div>
+    </div>
+  </div>
+  );
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SIDEBAR (modificado para mostrar privados si testPassed)
+// CHANNEL VIEWS
+// ═══════════════════════════════════════════════════════════════════════════
+function AnnouncementView({channel, posts, user, onNewPost, onDeletePost}) {
+  const isAdmin = user?.role === 'admin';
+  const sorted = [...(posts||[])].sort((a,b)=>{
+    if(a.pinned && !b.pinned) return -1;
+    if(!a.pinned && b.pinned) return 1;
+    return new Date(b.createdAt)-new Date(a.createdAt);
+  });
+  return (
+  <div>
+    {isAdmin && (
+      <div style={{display:'flex',justifyContent:'flex-end',marginBottom:16}}>
+        <button style={S.primaryBtn} onClick={onNewPost}>+ Nuevo anuncio</button>
+      </div>
+    )}
+    {sorted.length === 0
+      ? <div style={S.empty}><span style={S.emptyIcon}>📢</span><span style={S.emptyText}>Sin anuncios todavía</span></div>
+      : sorted.map(p=>(
+      <div key={p.id} style={{...S.postCard,...(p.pinned?S.postPinned:{}),cursor:'default'}}>
+        <div style={S.postAuthorRow}>
+          <Avatar name={p.author}/>
+          <span style={S.postAuthorName}>{p.author}</span>
+          <RoleBadge role={p.authorRole}/>
+          {p.pinned && <span style={{fontSize:12,color:'var(--accent)'}}>📌</span>}
+          <span style={S.postTime}>{timeAgo(p.createdAt)}</span>
+        </div>
+        <div style={S.postTitle}>{p.title}</div>
+        <div style={S.postBody}>{p.body}</div>
+        {isAdmin && (
+          <div style={S.postFooter}>
+            <span style={S.postStat} onClick={()=>onDeletePost(p.id)}>🗑 Eliminar</span>
+          </div>
+        )}
+      </div>
+    ))}
+  </div>
+  );
+}
+
+function DiscussionView({channel, posts, comments, user, onNewPost, onDeletePost, onAddComment, onDeleteComment}) {
+  const isAdmin = user?.role === 'admin';
+  const [expandedPost, setExpandedPost] = useState(null);
+  const [commentText, setCommentText] = useState('');
+  const sorted = [...(posts||[])].sort((a,b)=>{
+    if(a.pinned && !b.pinned) return -1;
+    if(!a.pinned && b.pinned) return 1;
+    return new Date(b.createdAt)-new Date(a.createdAt);
+  });
+
+  const submitComment = (postId) => {
+    if(!commentText.trim()) return;
+    onAddComment(postId, commentText.trim());
+    setCommentText('');
+  };
+
+  return (
+  <div>
+    {isAdmin && (
+      <div style={{display:'flex',justifyContent:'flex-end',marginBottom:16}}>
+        <button style={S.primaryBtn} onClick={onNewPost}>+ Nuevo tema</button>
+      </div>
+    )}
+    {sorted.length === 0
+      ? <div style={S.empty}><span style={S.emptyIcon}>💬</span><span style={S.emptyText}>Sin temas todavía</span></div>
+      : sorted.map(p=>{
+      const postComments = comments[p.id] || [];
+      const isExpanded = expandedPost === p.id;
+      return (
+      <div key={p.id} style={{marginBottom:16,animation:'fadeIn 0.25s ease-out'}}>
+        <div style={{...S.postCard,...(p.pinned?S.postPinned:{}),marginBottom:0,borderRadius:isExpanded?'var(--radius-lg) var(--radius-lg) 0 0':'var(--radius-lg)'}}
+          onClick={()=>setExpandedPost(isExpanded?null:p.id)}>
+          <div style={S.postAuthorRow}>
+            <Avatar name={p.author}/>
+            <span style={S.postAuthorName}>{p.author}</span>
+            <RoleBadge role={p.authorRole}/>
+            {p.pinned && <span style={{fontSize:12,color:'var(--accent)'}}>📌</span>}
+            <span style={S.postTime}>{timeAgo(p.createdAt)}</span>
+          </div>
+          <div style={S.postTitle}>{p.title}</div>
+          <div style={{...S.postBody,...(!isExpanded?{maxHeight:80,overflow:'hidden',WebkitMaskImage:postComments.length>0||p.body.length>200?'linear-gradient(to bottom, black 60%, transparent 100%)':undefined}:{})}}>{p.body}</div>
+          <div style={S.postFooter}>
+            <span style={{...S.postStat,...(isExpanded?{color:'var(--accent-text)',background:'var(--accent-bg)'}:{})}}>
+              💬 {postComments.length} comentario{postComments.length===1?'':'s'}
+            </span>
+            {isAdmin && <span style={S.postStat} onClick={(e)=>{e.stopPropagation();onDeletePost(p.id);}}>🗑</span>}
+          </div>
+        </div>
+
+        {isExpanded && (
+        <div style={{background:'var(--bg-raised)',border:'1px solid var(--border)',borderTop:'none',borderRadius:'0 0 var(--radius-lg) var(--radius-lg)',padding:'14px 18px'}} className="fade-in">
+          {postComments.length > 0 && (
+            <div style={S.commentWrap}>
+              {postComments.map(c=>(
+              <div key={c.id} style={S.commentCard}>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                  <Avatar name={c.author} size={24}/>
+                  <span style={{fontSize:12,fontWeight:600,color:'var(--text)'}}>{c.author}</span>
+                  <RoleBadge role={c.authorRole} style={{fontSize:7,padding:'1px 5px'}}/>
+                  <span style={{fontSize:10,color:'var(--text-faint)',marginLeft:'auto',fontFamily:"'JetBrains Mono',monospace"}}>{timeAgo(c.createdAt)}</span>
+                  {(isAdmin || c.author === user?.name) && (
+                    <button onClick={()=>onDeleteComment(p.id, c.id)} style={{background:'none',border:'none',color:'var(--text-faint)',cursor:'pointer',fontSize:12,padding:0}}>×</button>
+                  )}
+                </div>
+                <div style={{fontSize:13,color:'var(--text-muted)',lineHeight:1.55,whiteSpace:'pre-wrap',paddingLeft:32}}>{c.text}</div>
+              </div>
+              ))}
+            </div>
+          )}
+          <div style={{display:'flex',gap:8,marginTop:10,alignItems:'flex-end'}}>
+            <Avatar name={user?.name} size={28} style={{flexShrink:0,marginBottom:2}}/>
+            <textarea style={{...S.commentInput,marginBottom:0,flex:1}} value={commentText} onChange={e=>setCommentText(e.target.value)}
+              placeholder="Escribe un comentario..." rows={2}
+              onKeyDown={e=>{if(e.key==='Enter'&&e.metaKey){submitComment(p.id);}}}/>
+            <button style={{...S.primaryBtn,padding:'8px 14px',flexShrink:0}} onClick={()=>submitComment(p.id)}>Enviar</button>
+          </div>
+        </div>
+        )}
+      </div>
+      );
+    })}
+  </div>
+  );
+}
+
+function MarketplaceView({listings, user, onNew, onDelete}) {
+  const isAdmin = user?.role === 'admin';
+  const canPost = user?.role === 'admin' || user?.role === 'member';
+  const active = (listings||[]).filter(l=>l.active).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  const [filter, setFilter] = useState('all');
+  const filtered = filter === 'all' ? active : active.filter(l=>l.type===filter);
+  return (
+  <div>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,flexWrap:'wrap',gap:8}}>
+      <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+        <button style={{...S.ghostBtn,...(filter==='all'?{background:'var(--accent-bg)',borderColor:'var(--accent)',color:'var(--accent-text)'}:{})}} onClick={()=>setFilter('all')}>Todos</button>
+        {MARKETPLACE_TYPES.map(t=>(
+          <button key={t.id} style={{...S.ghostBtn,...(filter===t.id?{background:'var(--accent-bg)',borderColor:'var(--accent)',color:'var(--accent-text)'}:{})}} onClick={()=>setFilter(t.id)}>{t.label.split(' ')[0]}</button>
+        ))}
+      </div>
+      {canPost && <button style={S.primaryBtn} onClick={onNew}>+ Publicar</button>}
+    </div>
+    {filtered.length === 0
+      ? <div style={S.empty}><span style={S.emptyIcon}>🛒</span><span style={S.emptyText}>{filter==='all'?'Sin publicaciones':'Sin resultados'}</span></div>
+      : filtered.map(l=>{
+      const t = MARKETPLACE_TYPES.find(mt=>mt.id===l.type);
+      return (
+      <div key={l.id} style={S.mkCard}>
+        <div style={{...S.mkTypeBar,background:t?.color||'var(--accent)'}}/>
+        <div style={S.mkBody}>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+            <span style={{...S.headerBadge,color:t?.color,borderColor:t?.color,background:t?.color+'15',fontSize:8,padding:'3px 8px'}}>{t?.label}</span>
+            <span style={{marginLeft:'auto',...S.postTime}}>{timeAgo(l.createdAt)}</span>
+          </div>
+          <div style={{fontSize:16,fontWeight:700,color:'var(--text)',fontFamily:"'Outfit',sans-serif",marginBottom:6}}>{l.title}</div>
+          <div style={{fontSize:13,color:'var(--text-muted)',lineHeight:1.6,whiteSpace:'pre-wrap',marginBottom:10}}>{l.body}</div>
+          <div style={S.mkMeta}>
+            {l.location && <span style={S.mkTag}>📍 {l.location}</span>}
+            {l.price && <span style={{...S.mkTag,color:'var(--success)'}}>💰 {l.price}</span>}
+            {l.contact && <span style={{...S.mkTag,color:'var(--accent-text)'}}>📱 {l.contact}</span>}
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginTop:12,paddingTop:10,borderTop:'1px solid var(--border)'}}>
+            <Avatar name={l.author} size={22}/>
+            <span style={{fontSize:12,fontWeight:600,color:'var(--text)'}}>{l.author}</span>
+            <RoleBadge role={l.authorRole} style={{fontSize:7,padding:'1px 5px'}}/>
+            {(isAdmin || l.author === user?.name) && (
+              <span style={{...S.postStat,marginLeft:'auto'}} onClick={()=>onDelete(l.id)}>🗑</span>
+            )}
+          </div>
+        </div>
+      </div>
+      );
+    })}
+    {!canPost && (
+      <div style={{textAlign:'center',padding:'20px',color:'var(--text-dim)',fontSize:12,border:'1px dashed var(--border)',borderRadius:'var(--radius)',marginTop:12}}>
+        🔒 Solo miembros pueden publicar en el marketplace. <span style={{color:'var(--member)',cursor:'pointer'}}>Hazte miembro →</span>
+      </div>
+    )}
+  </div>
+  );
+}
+
+function ResourceView({channel, posts, user, onNewPost, onDeletePost}) {
+  const isAdmin = user?.role === 'admin';
+  const sorted = [...(posts||[])].sort((a,b)=>{
+    if(a.pinned&&!b.pinned) return -1;
+    if(!a.pinned&&b.pinned) return 1;
+    return new Date(b.createdAt)-new Date(a.createdAt);
+  });
+  return (
+  <div>
+    {isAdmin && <div style={{display:'flex',justifyContent:'flex-end',marginBottom:16}}><button style={S.primaryBtn} onClick={onNewPost}>+ Nuevo recurso</button></div>}
+    {sorted.length===0
+      ? <div style={S.empty}><span style={S.emptyIcon}>📚</span><span style={S.emptyText}>Sin recursos todavía</span></div>
+      : sorted.map(p=>(
+      <div key={p.id} style={{...S.postCard,...(p.pinned?S.postPinned:{}),cursor:'default'}}>
+        <div style={S.postAuthorRow}>
+          <Avatar name={p.author}/>
+          <span style={S.postAuthorName}>{p.author}</span>
+          <RoleBadge role={p.authorRole}/>
+          {p.pinned && <span style={{fontSize:12,color:'var(--accent)'}}>📌</span>}
+          <span style={S.postTime}>{timeAgo(p.createdAt)}</span>
+        </div>
+        <div style={S.postTitle}>{p.title}</div>
+        <div style={S.postBody}>{p.body}</div>
+        {isAdmin && <div style={S.postFooter}><span style={S.postStat} onClick={()=>onDeletePost(p.id)}>🗑</span></div>}
+      </div>
+    ))}
+  </div>
+  );
+}
+
+function LockedView({onUpgrade}) {
+  return (
+  <div style={S.lockedOverlay}>
+    <div style={S.lockIcon}>🔒</div>
+    <div style={S.lockTitle}>Contenido exclusivo para miembros</div>
+    <div style={S.lockDesc}>Esta sección es solo para miembros de la comunidad RAL. Obtené acceso a contenido técnico, cursos, descuentos y más.</div>
+    <button style={S.lockBtn} onClick={onUpgrade}>⭐ Hacete miembro</button>
+  </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SIDEBAR
 // ═══════════════════════════════════════════════════════════════════════════
 function Sidebar({data, user, activeChannelId, onSelectChannel, onAddCategory, onEditCategory, onAddChannel, onLogout, onToggleAdmin, onToggleMember}) {
   const [collapsed, setCollapsed] = useState({});
   const sortedCats = useMemo(()=>[...data.categories].sort((a,b)=>(a.order??999)-(b.order??999)),[data.categories]);
   const isAdmin = user?.role === 'admin';
-  const hasAccess = user?.testPassed === true || user?.role === 'member' || user?.role === 'admin';
 
   return (
   <div style={S.sidebar}>
@@ -651,7 +975,7 @@ function Sidebar({data, user, activeChannelId, onSelectChannel, onAddCategory, o
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// MAIN APP (con test y welcome mejorado)
+// MAIN APP
 // ═══════════════════════════════════════════════════════════════════════════
 function App() {
   const [user, setUser] = useState(()=>DB.getUser());
@@ -679,9 +1003,11 @@ function App() {
   useEffect(()=>{DB.setComments(comments);},[comments]);
   useEffect(()=>{DB.setMarketplace(marketplace);},[marketplace]);
 
+  const handleLogin = (u) => { setUser(u); };
+  const handleLogout = () => { setUser(null); DB.setUser(null); };
   const handleTestPass = () => {
-  setUser(prev => ({ ...prev, testPassed: true, role: prev.role === 'guest' ? 'member' : prev.role }));
-};
+    setUser(prev => ({ ...prev, testPassed: true, role: prev.role === 'guest' ? 'member' : prev.role }));
+  };
 
   if(!user) return <LoginScreen onLogin={handleLogin}/>;
   if(!data) return null;
@@ -692,7 +1018,6 @@ function App() {
   const canViewChannel = !isPrivateChannel || user.role === 'admin' || user.role === 'member' || user.testPassed === true;
   const isAdmin = user.role === 'admin';
 
-  // Category CRUD
   const saveCategory = (cat) => {
     setData(prev=>{
       const idx = prev.categories.findIndex(c=>c.id===cat.id);
@@ -742,7 +1067,6 @@ function App() {
   };
   const channelTypeInfo = channel ? CHANNEL_TYPES[channel.type] : null;
 
-  // Welcome screen con logo grande y test
   const WelcomeScreen = () => (
     <div style={{...S.empty, height: '100%', padding: '24px'}}>
       <div style={{textAlign: 'center', marginBottom: 24}}>
@@ -778,11 +1102,6 @@ function App() {
       )}
     </div>
   );
-
-  // Channel views (Announcement, Discussion, Marketplace, Resource) - igual que antes, se incluirán en el código final.
-  // Por brevedad en la explicación, pongo los componentes ya existentes (no los repito aquí, pero van en el código final).
-  // Asegurarse de incluir las funciones AnnouncementView, DiscussionView, MarketplaceView, ResourceView, LockedView.
-  // Como ya existen en el código original, las mantengo.
 
   return (
   <div style={S.app}>
@@ -848,13 +1167,7 @@ function App() {
   );
 }
 
-// Los componentes AnnouncementView, DiscussionView, MarketplaceView, ResourceView, LockedView, CategoryModal, ChannelModal, PostModal, MarketplaceModal
-// son idénticos a los del código original. Para no extender esta respuesta de forma desmedida, se incluirán en el archivo final completo.
-// En la entrega final, adjunto el HTML íntegro con todo.
-
-// Asegurar que ReactDOM renderiza
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
 </html>
-
