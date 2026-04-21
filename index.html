@@ -857,21 +857,4 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
 </html>
-```
 
-## 🚀 Instalación y uso
-
-1. Copia todo el código anterior en un archivo llamado `index.html`.  
-2. Ábrelo en tu navegador o sírvelo con cualquier servidor local (Live Server, etc.).  
-3. Inicia sesión con cualquier nombre.  
-4. En la pantalla de bienvenida verás el **logo grande** y el **test**.  
-5. Completa el test → si apruebas, las categorías privadas (🎓 Formación, 🔧 Técnico) se desbloquean automáticamente.  
-6. Si no apruebas, recibirás consejos y enlaces para mejorar.
-
-## 🔐 Nota sobre el desbloqueo
-
-- El test guarda `testPassed: true` en el objeto de usuario (`localStorage`).  
-- Las categorías privadas se muestran solo si `testPassed === true` o el usuario es `admin` / `member`.  
-- Puedes simular ser admin/miembro con los botones 🔧 y ⭐ en la barra lateral (solo para pruebas).
-
-¡Listo! Ahora tu comunidad RAL tiene un **funnel de ingreso basado en aptitudes** tal como lo describiste en tu post.
