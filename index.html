@@ -222,7 +222,7 @@ const S = {
   mkMeta:{display:'flex',gap:8,flexWrap:'wrap',marginTop:10},
   mkTag:{fontSize:10,fontWeight:600,fontFamily:"'JetBrains Mono',monospace",padding:'3px 8px',borderRadius:4,background:'var(--bg-raised)',color:'var(--text-muted)',display:'inline-flex',alignItems:'center',gap:4},
   overlay:{position:'fixed',inset:0,background:'rgba(8,12,20,0.8)',backdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:20,animation:'fadeIn 0.15s ease-out'},
-  modal:{background:'var(--bg-panel)',border:'1px solid var(--border-strong)',borderRadius:'var(--radius-xl)',width:'100%',maxWidth:520,maxHeight:'85vh',overflowY:'auto',boxShadow:'var(--shadow-lg)'},
+  modal:{background:'var(--bg-panel)',border:'1px solid var(--border-strong)',borderRadius:'var(--radius-xl)',width:'100%',maxWidth:680,maxHeight:'85vh',overflowY:'auto',boxShadow:'var(--shadow-lg)'},
   modalSm:{maxWidth:400},
   modalHeader:{padding:'20px 24px 16px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between'},
   modalTitle:{fontSize:17,fontWeight:700,color:'var(--text)',fontFamily:"'Outfit',sans-serif"},
@@ -340,55 +340,60 @@ function LoginScreen({onLogin}) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ✨ TEST MEJORADO: sin puntajes visibles, opciones desordenadas, solo preguntas claras
+// ✨ TEST MEJORADO (con edad, visa, nuevos puntajes y advertencias de sponsor)
 // ═══════════════════════════════════════════════════════════════════════════
 function TestModal({ onClose, onPass }) {
   const [answers, setAnswers] = useState({});
+  const [age, setAge] = useState('');
+  const [visa, setVisa] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(0);
   const [passed, setPassed] = useState(false);
   const [advice, setAdvice] = useState('');
   const [shuffledOptions, setShuffledOptions] = useState({});
+  const [ageError, setAgeError] = useState('');
 
+  // Definición de preguntas con sus opciones y puntajes (según especificación)
   const TEST_QUESTIONS = [
     { id: 'eng', emoji: '🎓', text: '¿Cuál es tu nivel de inglés?', options: [
-        { label: 'A1 (Muy básico)', points: 0 },
-        { label: 'A2 (Básico)', points: 5 },
-        { label: 'B1 (Intermedio - suficiente para instrucciones)', points: 15 },
-        { label: 'B2 (Intermedio alto)', points: 20 },
-        { label: 'C1+ (Avanzado o nativo)', points: 25 }
+        { label: 'C1+ (Avanzado o nativo)', points: 10 },
+        { label: 'B2 (Intermedio alto)', points: 8 },
+        { label: 'B1 (Intermedio - suficiente para instrucciones)', points: 5 },
+        { label: 'A2 (Básico)', points: 0 },
+        { label: 'A1 (Muy básico)', points: -2 }
     ]},
     { id: 'climb', emoji: '🧗', text: 'Experiencia previa en escalada o altura', options: [
-        { label: 'Ninguna', points: 0 },
-        { label: 'Básica (he escalado algunas veces)', points: 10 },
-        { label: 'Moderada (escalada deportiva o trabajos ocasionales)', points: 18 },
-        { label: 'Avanzada (escalador regular o profesional)', points: 25 }
+        { label: 'Avanzada (escalador regular o profesional)', points: 10 },
+        { label: 'Moderada (escalada deportiva o trabajos ocasionales)', points: 5 },
+        { label: 'Básica (he escalado algunas veces)', points: 2 },
+        { label: 'Ninguna', points: 0 }
     ]},
     { id: 'trade', emoji: '🔧', text: '¿Tienes algún oficio? (carpintero, pintor, etc.)', options: [
-        { label: 'No', points: 0 },
-        { label: 'Sí, pero poca experiencia', points: 10 },
-        { label: 'Sí, varios años', points: 20 }
+        { label: 'Sí, varios años', points: 10 },
+        { label: 'Sí, pero poca experiencia', points: 2 },
+        { label: 'No', points: 0 }
     ]},
     { id: 'fitness', emoji: '💪', text: 'Describe tu condición física actual', options: [
-        { label: 'Mala (sedentario)', points: 0 },
-        { label: 'Regular (ejercicio ocasional)', points: 6 },
-        { label: 'Buena (entreno 2-3 veces/semana)', points: 15 },
-        { label: 'Muy buena (4+ veces/semana)', points: 20 },
-        { label: 'Atleta', points: 25 }
+        { label: 'Atleta', points: 12 },
+        { label: 'Muy buena (4+ veces/semana)', points: 8 },
+        { label: 'Buena (entreno 2-3 veces/semana)', points: 6 },
+        { label: 'Regular (ejercicio ocasional)', points: -2 },
+        { label: 'Mala (sedentario)', points: -5 }
     ]},
     { id: 'workexp', emoji: '🏗️', text: 'Experiencia laboral en trabajos físicos', options: [
-        { label: 'Ninguna (oficinista, sin manual)', points: 0 },
-        { label: 'Alguna (trabajos eventuales físicos)', points: 10 },
-        { label: 'Bastante (años en construcción, mantenimiento)', points: 20 }
+        { label: 'Bastante (años en construcción, mantenimiento)', points: 10 },
+        { label: 'Alguna (trabajos eventuales físicos)', points: 3 },
+        { label: 'Ninguna (oficinista, sin manual)', points: 0 }
     ]},
     { id: 'teamwork', emoji: '🤝', text: 'Trabajo en equipo y comunicación', options: [
-        { label: 'Poco (prefiero solo)', points: 0 },
-        { label: 'Regular (lo necesario)', points: 6 },
-        { label: 'Bien (colaboro activamente)', points: 15 },
-        { label: 'Muy bien (liderazgo, comunicación clara)', points: 20 }
+        { label: 'Muy bien (liderazgo, comunicación clara)', points: 12 },
+        { label: 'Bien (colaboro activamente)', points: 5 },
+        { label: 'Regular (lo necesario)', points: 0 },
+        { label: 'Poco (prefiero solo)', points: -3 }
     ]}
   ];
 
+  // Mezclar opciones al montar
   useEffect(() => {
     const shuffled = {};
     TEST_QUESTIONS.forEach(q => {
@@ -406,26 +411,104 @@ function TestModal({ onClose, onPass }) {
     setAnswers(prev => ({ ...prev, [qId]: points }));
   };
 
+  // Calcular puntos según edad
+  const getAgePoints = (ageNum) => {
+    if (ageNum < 18) return null; // inválido
+    if (ageNum >= 18 && ageNum <= 25) return 5;
+    if (ageNum > 25 && ageNum <= 30) return 10;
+    if (ageNum > 30 && ageNum <= 40) return 5;
+    if (ageNum > 40 && ageNum < 45) return -5;
+    if (ageNum >= 45) return 0; // no recomendado, 0 puntos
+    return 0;
+  };
+
+  // Calcular puntos según visa
+  const getVisaPoints = (visaType) => {
+    switch (visaType) {
+      case 'resident': return 12;
+      case 'wh6': return 8;
+      case 'wh3_6': return 5;
+      case 'wh_less3': return 2;
+      case 'turista': return -5;
+      case 'student': return -5;
+      default: return 0;
+    }
+  };
+
+  // Obtener mensaje específico de visa para advertencia de sponsor
+  const getVisaWarning = (visaType) => {
+    if (visaType === 'turista' || visaType === 'student' || visaType === 'wh_less3') {
+      return '⚠️ IMPORTANTE: Con visa de turista, estudiante o Working Holiday con menos de 3 meses de validez, obtener un certificado IRATA NO garantiza conseguir un sponsor laboral. Lo ideal es tener al menos una Working Holiday Visa con mínimo 3 meses restantes (idealmente 6 meses) y llegar entre septiembre y junio para buscar trabajo inmediatamente después del curso.';
+    }
+    if (visaType === 'wh3_6') {
+      return '⚠️ Atención: Tu visa Working Holiday tiene entre 3 y 6 meses. Es un tiempo justo para certificarte y buscar trabajo. Asegúrate de llegar con el curso ya planificado y empezar a buscar sponsor desde el día 1.';
+    }
+    return '';
+  };
+
   const calculateScore = () => {
+    // Validaciones de edad
+    const ageNum = parseInt(age);
+    if (isNaN(ageNum)) {
+      setAgeError('Por favor ingresa tu edad');
+      return;
+    }
+    if (ageNum < 18) {
+      setAgeError('❌ Debes ser mayor de 18 años para realizar el test. El rope access requiere madurez y responsabilidad.');
+      return;
+    }
+    setAgeError('');
+    
+    if (!visa) {
+      alert('Por favor selecciona tu situación migratoria / tipo de visa');
+      return;
+    }
+
     let total = 0;
     TEST_QUESTIONS.forEach(q => {
       const selected = answers[q.id];
       if (selected !== undefined) total += selected;
     });
-    const passedFlag = total >= 70;
+    const agePoints = getAgePoints(ageNum);
+    total += agePoints;
+    const visaPoints = getVisaPoints(visa);
+    total += visaPoints;
+
+    // Umbral de aprobación: 60 puntos (máximo posible 86)
+    const passedFlag = total >= 60;
     let adviceMsg = '';
+
+    // Construcción del mensaje de consejos
     if (!passedFlag) {
-      let missing = [];
-      if ((answers.eng||0) < 15) missing.push('🎓 Inglés (necesitas al menos B1)');
-      if ((answers.fitness||0) < 15) missing.push('💪 Condición física (entrena 2-3 veces/semana)');
-      if ((answers.trade||0) < 10) missing.push('🔧 Oficio o habilidad manual');
-      if ((answers.climb||0) < 10) missing.push('🧗 Practica escalada en gimnasio');
-      if ((answers.workexp||0) < 10) missing.push('🏗️ Busca trabajos eventuales físicos');
-      if ((answers.teamwork||0) < 15) missing.push('🤝 Mejora comunicación en equipo');
-      adviceMsg = `❌ No alcanzaste (${total}/70 puntos). Para ser un buen candidato a rope access:\n${missing.join('\n')}\n\n📘 Recursos: Test de inglés gratuito → preply.com | Ejercicios de calistenia 3 veces/semana.`;
+      adviceMsg = `❌ No alcanzaste los 60 puntos (obtuviste ${total}/86). Para mejorar tu perfil:\n`;
+      // Analizar puntos bajos
+      if ((answers.eng||0) < 5) adviceMsg += '🎓 Mejora tu inglés al menos a nivel B1 (intermedio).\n';
+      if ((answers.climb||0) < 5) adviceMsg += '🧗 Practica escalada en gimnasio o actividades en altura.\n';
+      if ((answers.trade||0) < 2) adviceMsg += '🔧 Desarrolla un oficio manual (carpintería, pintura, etc.).\n';
+      if ((answers.fitness||0) < 6) adviceMsg += '💪 Mejora tu condición física (entrena al menos 3 veces por semana).\n';
+      if ((answers.workexp||0) < 5) adviceMsg += '🏗️ Busca trabajos eventuales en construcción o mantenimiento.\n';
+      if ((answers.teamwork||0) < 5) adviceMsg += '🤝 Trabaja en tu comunicación y trabajo en equipo.\n';
+      if (agePoints < 5 && ageNum >= 18) adviceMsg += `📅 Tu edad (${ageNum}) te da pocos puntos. ${ageNum >= 45 ? 'El rope access es muy demandante físicamente, evalúa bien.' : 'El rango óptimo es 25-30 años.'}\n`;
     } else {
-      adviceMsg = `✅ ¡Excelente! Obtuviste ${total}/70 puntos. Tienes el perfil adecuado para iniciar el curso IRATA.`;
+      adviceMsg = `✅ ¡Excelente! Obtuviste ${total}/86 puntos. Tienes un perfil muy apto para iniciar el camino en rope access.\n`;
     }
+
+    // Agregar advertencia de visa si aplica
+    const visaWarning = getVisaWarning(visa);
+    if (visaWarning) adviceMsg += '\n' + visaWarning + '\n';
+
+    // Mensaje específico para mayores de 45
+    if (ageNum >= 45) {
+      adviceMsg += '\n⚠️ Edad avanzada: El rope access es físicamente muy duro y se necesitan aproximadamente 5 años para alcanzar un rol de supervisor más liviano. Evalúa seriamente tu condición física y objetivos.\n';
+    }
+
+    // Si el usuario tiene visa turista/student, además recordar que el curso no garantiza sponsor
+    if (visa === 'turista' || visa === 'student') {
+      adviceMsg += '\n📌 Importante: Obtener una certificación IRATA no te da derecho a trabajar. Necesitarás una visa con permiso de trabajo (Working Holiday, Residencia, etc.) para ejercer legalmente.\n';
+    }
+
+    adviceMsg += '\n📘 Recursos recomendados: cursos de inglés gratuitos (Preply, Duolingo), entrenamiento de calistenia 3 veces/semana, y voluntariado en construcción.';
+
     setScore(total);
     setPassed(passedFlag);
     setAdvice(adviceMsg);
@@ -433,13 +516,16 @@ function TestModal({ onClose, onPass }) {
     if (passedFlag) onPass();
   };
 
-  const allAnswered = TEST_QUESTIONS.every(q => answers[q.id] !== undefined);
+  const allQuestionsAnswered = TEST_QUESTIONS.every(q => answers[q.id] !== undefined);
+  const hasAge = age !== '' && parseInt(age) >= 18;
+  const hasVisa = visa !== '';
+  const allDataReady = allQuestionsAnswered && hasAge && hasVisa && !ageError;
   const answeredCount = Object.keys(answers).length;
   const progress = (answeredCount / TEST_QUESTIONS.length) * 100;
 
   return (
     <div style={S.overlay} onClick={onClose}>
-      <div style={{...S.modal, maxWidth: 680}} onClick={e=>e.stopPropagation()} className="fade-in">
+      <div style={S.modal} onClick={e=>e.stopPropagation()} className="fade-in">
         <div style={S.modalHeader}>
           <div>
             <div style={S.modalKicker}>🧗 TEST DE APTITUD · SIN PISTAS · OPCIONES MEZCLADAS</div>
@@ -456,6 +542,8 @@ function TestModal({ onClose, onPass }) {
               <div style={{marginBottom: 18, fontSize: 12, color: 'var(--text-muted)', textAlign: 'center'}}>
                 🎲 Cada vez que abrís el test, las opciones se mezclan — leé con atención
               </div>
+
+              {/* Preguntas principales */}
               {TEST_QUESTIONS.map(q => {
                 const opts = shuffledOptions[q.id] || q.options;
                 return (
@@ -488,8 +576,47 @@ function TestModal({ onClose, onPass }) {
                   </div>
                 );
               })}
+
+              {/* Campo Edad */}
+              <div style={{marginBottom: 24}}>
+                <label style={S.label}>🎂 Edad (años)</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="120"
+                  style={S.input}
+                  value={age}
+                  onChange={(e) => {
+                    setAge(e.target.value);
+                    setAgeError('');
+                  }}
+                  placeholder="Ej: 28"
+                />
+                {ageError && <div style={{color:'var(--danger)', fontSize:12, marginTop:-8, marginBottom:8}}>{ageError}</div>}
+                <div style={{fontSize:10, color:'var(--text-faint)', marginTop:4}}>
+                  Rangos: 18-25 → +5 | 26-30 → +10 | 31-40 → +5 | 41-44 → -5 | ≥45 → 0 (no recomendado)
+                </div>
+              </div>
+
+              {/* Campo Visa */}
+              <div style={{marginBottom: 24}}>
+                <label style={S.label}>🛂 Situación migratoria / Visa</label>
+                <select style={S.select} value={visa} onChange={(e) => setVisa(e.target.value)}>
+                  <option value="">Seleccionar...</option>
+                  <option value="resident">Residente o Ciudadano (+12)</option>
+                  <option value="wh6">Working Holiday (6 meses o más) (+8)</option>
+                  <option value="wh3_6">Working Holiday (entre 3 y 6 meses) (+5)</option>
+                  <option value="wh_less3">Working Holiday (menos de 3 meses) (+2)</option>
+                  <option value="student">Visa de Estudiante (-5)</option>
+                  <option value="turista">Visa de Turista (-5)</option>
+                </select>
+                <div style={{fontSize:10, color:'var(--text-faint)', marginTop:4}}>
+                  ⚠️ Visas de turista o estudiante dificultan obtener sponsor laboral.
+                </div>
+              </div>
+
               <button style={{...S.primaryBtn, width: '100%', padding: '14px', fontSize: 14, marginTop: 8}} 
-                disabled={!allAnswered} onClick={calculateScore}>
+                disabled={!allDataReady} onClick={calculateScore}>
                 🎯 Calificar mi perfil
               </button>
             </>
@@ -497,9 +624,9 @@ function TestModal({ onClose, onPass }) {
             <div>
               <div style={{textAlign: 'center', marginBottom: 20}}>
                 <div style={{fontSize: 56}}>{passed ? '🎉🏆✨' : '📘💪📈'}</div>
-                <div style={{fontSize: 32, fontWeight: 800, marginTop: 8, background: 'var(--rainbow)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent'}}>{score}/70</div>
+                <div style={{fontSize: 32, fontWeight: 800, marginTop: 8, background: 'var(--rainbow)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent'}}>{score}/86</div>
                 <div style={{color: passed ? 'var(--success)' : 'var(--warn)', fontWeight: 700, fontSize: 14, marginTop: 6}}>
-                  {passed ? '✅ ¡Aprobado! Se desbloquean secciones privadas' : '❌ No alcanzaste el mínimo (70 puntos)'}
+                  {passed ? '✅ ¡Aprobado! Se desbloquean secciones privadas' : '❌ No alcanzaste el mínimo (60 puntos)'}
                 </div>
               </div>
               <div style={{...S.adviceCard, background: 'var(--bg-raised)', padding: '18px', borderRadius: 'var(--radius-lg)', marginBottom: 16}}>
@@ -622,8 +749,11 @@ function App() {
   return (<div style={S.app}><Sidebar data={data} user={user} activeChannelId={activeChannelId} onSelectChannel={setActiveChannelId} onAddCategory={()=>setShowCatModal({editing:null})} onAddChannel={(catId)=>setShowChModal({categoryId:catId})} onLogout={handleLogout} onToggleAdmin={()=>toggleRole('admin')} onToggleMember={()=>toggleRole('member')}/><div style={S.main}>{!channel ? <WelcomeScreen /> : !canViewChannel ? <LockedView onUpgrade={() => setShowTestModal(true)}/> : (<><div style={S.header}><div style={S.headerInfo}><div style={S.headerTitle}>{channel.name}</div><div style={S.headerDesc}>{channelTypeInfo?.desc || 'Canal'}{channelCategory && ` · ${channelCategory.emoji} ${channelCategory.name}`}</div></div><div style={{display:'flex',gap:6,alignItems:'center'}}>{isPrivateChannel && <span style={{...S.headerBadge,color:'var(--member)',borderColor:'var(--member)',background:'var(--member-bg)'}}>🔒 Miembros</span>}{isAdmin && <button style={{...S.ghostBtn,fontSize:10}} onClick={()=>deleteChannel(channel.id)}>🗑</button>}</div></div><div style={S.content}>{channel.type === 'announcement' && <AnnouncementView channel={channel} posts={posts[channel.id]||[]} user={user} onNewPost={()=>setShowPostModal(true)} onDeletePost={(pid)=>deletePost(channel.id,pid)}/>}{channel.type === 'discussion' && <DiscussionView channel={channel} posts={posts[channel.id]||[]} comments={comments} user={user} onNewPost={()=>setShowPostModal(true)} onDeletePost={(pid)=>deletePost(channel.id,pid)} onAddComment={addComment} onDeleteComment={deleteComment}/>}{channel.type === 'marketplace' && <MarketplaceView listings={marketplace} user={user} onNew={()=>setShowMkModal(true)} onDelete={deleteListing}/>}{channel.type === 'resource' && <ResourceView channel={channel} posts={posts[channel.id]||[]} user={user} onNewPost={()=>setShowPostModal(true)} onDeletePost={(pid)=>deletePost(channel.id,pid)}/>}</div></>)}</div>{showCatModal && <CategoryModal onClose={()=>setShowCatModal(null)} onSave={saveCategory} editing={showCatModal.editing}/>}{showChModal && <ChannelModal onClose={()=>setShowChModal(null)} onSave={saveChannel} categoryId={showChModal.categoryId}/>}{showPostModal && channel && <PostModal onClose={()=>setShowPostModal(false)} onSave={(p)=>createPost(channel.id,p)} channelName={channel.name}/>}{showMkModal && <MarketplaceModal onClose={()=>setShowMkModal(false)} onSave={createListing} user={user}/>}{showTestModal && <TestModal onClose={()=>setShowTestModal(false)} onPass={handleTestPass} />}</div>);
 }
 
+// Nota: CategoryModal, ChannelModal, PostModal, MarketplaceModal no se modificaron; existen en el código original pero no están mostrados aquí por brevedad.
+// Para que el código funcione completamente, necesitas incluir esos componentes (se omiten por espacio, pero están en tu código original).
+// Si necesitas que los incluya, házmelo saber.
+
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
 </html>
-```
