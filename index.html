@@ -1,165 +1,290 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>RAL · Rope Access Latino Community</title>
+
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
   <style>
     :root{
-      --bg:#0b1220; --panel:#111827; --panel2:#1f2937; --border:#2b3a50;
-      --text:#e5e7eb; --muted:#94a3b8; --accent:#22d3ee; --ok:#22c55e;
+      --bg:#0b1220; --panel:#111827; --panel2:#1f2937; --border:#334155;
+      --text:#e5e7eb; --muted:#94a3b8; --accent:#22d3ee; --accent2:#67e8f9;
+      --ok:#22c55e; --warn:#eab308; --danger:#ef4444;
     }
     *{box-sizing:border-box}
+    html,body,#root{height:100%}
     body{margin:0;font-family:Inter,system-ui,Arial;background:var(--bg);color:var(--text)}
-    .app{display:grid;grid-template-columns:280px 1fr;height:100vh}
+    .app{display:grid;grid-template-columns:290px 1fr;height:100%}
     .sidebar{background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column}
-    .brand{padding:16px;font-weight:800;border-bottom:1px solid var(--border)}
+    .brand{padding:16px;border-bottom:1px solid var(--border);font-weight:800}
     .searchWrap{padding:10px;border-bottom:1px solid var(--border)}
-    .search{width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);background:#0f172a;color:var(--text)}
-    .search:focus{outline:none;border-color:var(--accent)}
-    .cats{padding:8px;overflow:auto;flex:1}
+    .search{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:#0f172a;color:var(--text)}
+    .search:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(34,211,238,.15)}
+    .catList{padding:8px;overflow:auto;flex:1}
     .catTitle{font-size:11px;color:var(--muted);text-transform:uppercase;margin:10px 6px}
-    .ch{width:100%;text-align:left;background:transparent;border:0;color:var(--text);padding:8px 10px;border-radius:8px;cursor:pointer}
-    .ch:hover{background:#1e293b}
-    .ch.active{background:rgba(34,211,238,.15);color:#67e8f9}
-    .userbar{padding:10px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)}
+    .channel{width:100%;text-align:left;background:transparent;border:0;color:var(--text);padding:8px 10px;border-radius:8px;cursor:pointer}
+    .channel:hover{background:#1e293b}
+    .channel.active{background:rgba(34,211,238,.15);color:var(--accent2)}
+    .userBar{padding:12px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)}
+    .row{display:flex;gap:8px;align-items:center}
     .main{display:flex;flex-direction:column}
     .header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--panel)}
     .title{font-size:20px;font-weight:700}
     .desc{font-size:13px;color:var(--muted);margin-top:4px}
-    .content{padding:20px;overflow:auto}
+    .content{padding:18px;overflow:auto}
     .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px}
-    .meta{font-size:12px;color:var(--muted);margin:6px 0 10px}
-    .empty{border:1px dashed var(--border);border-radius:12px;padding:20px;text-align:center;color:var(--muted)}
-    .btn{background:var(--accent);color:#001018;border:0;padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer}
-    .btnGhost{background:transparent;color:var(--text);border:1px solid var(--border);padding:10px 14px;border-radius:10px;cursor:pointer}
-    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:20px}
-    .modal{width:min(520px,100%);background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px}
-    .row{display:flex;gap:10px;align-items:center}
-    .input, .select{width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);background:#0f172a;color:var(--text)}
-    .ok{background:rgba(34,197,94,.1);border:1px solid var(--ok);color:#d1fae5;border-radius:12px;padding:16px}
+    .meta{font-size:12px;color:var(--muted);margin:8px 0}
+    .empty{border:1px dashed var(--border);border-radius:12px;padding:24px;text-align:center;color:var(--muted)}
+    .btn{background:var(--accent);color:#001018;border:0;padding:9px 12px;border-radius:9px;font-weight:700;cursor:pointer}
+    .btnGhost{background:transparent;color:var(--text);border:1px solid var(--border);padding:9px 12px;border-radius:9px;cursor:pointer}
+    .btnDanger{background:transparent;color:#fca5a5;border:1px solid #7f1d1d;padding:8px 10px;border-radius:8px;cursor:pointer}
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+    .modal{width:min(680px,100%);max-height:90vh;overflow:auto;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px}
+    .input,.select,.textarea{
+      width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);
+      background:#0f172a;color:var(--text)
+    }
+    .textarea{min-height:100px;resize:vertical}
+    .ok{
+      background:rgba(34,197,94,.1);border:1px solid var(--ok);
+      color:#dcfce7;border-radius:12px;padding:14px;margin-top:12px
+    }
+    .badge{font-size:11px;padding:3px 7px;border-radius:6px;border:1px solid var(--border);color:var(--muted)}
+    .private{color:#c4b5fd;border-color:#6d28d9}
   </style>
 </head>
 <body>
 <div id="root"></div>
 
 <script type="text/babel">
-const { useState, useMemo } = React;
+const { useState, useMemo, useEffect } = React;
 
-const DB_KEY = "ral_demo_v2";
-const load = () => {
-  try { return JSON.parse(localStorage.getItem(DB_KEY) || "null"); } catch { return null; }
-};
-const save = (d) => localStorage.setItem(DB_KEY, JSON.stringify(d));
+// ---------------------------
+// Persistencia local
+// ---------------------------
+const KEY = "ral_full_demo_v1";
+const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || "null"); } catch { return null; } };
+const save = (data) => localStorage.setItem(KEY, JSON.stringify(data));
 
-const seed = {
+// ---------------------------
+// Seed data
+// ---------------------------
+const initialData = {
   user: null,
   categories: [
-    { id:"cat-welcome", name:"Bienvenida", emoji:"👋" },
-    { id:"cat-general", name:"General", emoji:"💬" },
-    { id:"cat-jobs", name:"Bolsa de Trabajo", emoji:"💼" },
-    { id:"cat-tech", name:"Técnico", emoji:"🔧" }
+    {id:"cat-welcome", name:"Bienvenida", emoji:"👋"},
+    {id:"cat-general", name:"General", emoji:"💬"},
+    {id:"cat-jobs", name:"Bolsa de Trabajo", emoji:"💼"},
+    {id:"cat-tech", name:"Técnico", emoji:"🔧", private:true}
   ],
   channels: [
-    { id:"ch-reglas", name:"📋 reglas", categoryId:"cat-welcome", type:"announcement" },
-    { id:"ch-presentaciones", name:"👋 presentaciones", categoryId:"cat-welcome", type:"discussion" },
-    { id:"ch-noticias", name:"📢 noticias-ral", categoryId:"cat-general", type:"announcement" },
-    { id:"ch-charla", name:"💬 charla-general", categoryId:"cat-general", type:"discussion" },
-    { id:"ch-market", name:"🛒 marketplace", categoryId:"cat-jobs", type:"marketplace" },
-    { id:"ch-irata", name:"🧗 irata-info", categoryId:"cat-tech", type:"discussion", private:true }
+    {id:"ch-rules", name:"📋 reglas", categoryId:"cat-welcome", type:"announcement"},
+    {id:"ch-present", name:"👋 presentaciones", categoryId:"cat-welcome", type:"discussion"},
+    {id:"ch-news", name:"📢 noticias-ral", categoryId:"cat-general", type:"announcement"},
+    {id:"ch-talk", name:"💬 charla-general", categoryId:"cat-general", type:"discussion"},
+    {id:"ch-market", name:"🛒 marketplace", categoryId:"cat-jobs", type:"marketplace"},
+    {id:"ch-irata", name:"🧗 irata-info", categoryId:"cat-tech", type:"discussion", private:true},
+    {id:"ch-safety", name:"🛡️ seguridad", categoryId:"cat-tech", type:"discussion", private:true}
   ],
   posts: {
-    ch_reglas: [],
-    "ch-reglas":[{id:"p1",title:"Reglas",body:"Respeto, no spam, compartir conocimiento.",author:"Lionel",date:"2026-04-15"}],
-    "ch-noticias":[{id:"p2",title:"RAL está en línea 🚀",body:"Bienvenidos a la comunidad latina de rope access.",author:"Lionel",date:"2026-04-16"}],
-    "ch-charla":[{id:"p3",title:"¿De dónde sos?",body:"Contá país, nivel IRATA/SPRAT y sector.",author:"Lionel",date:"2026-04-16"}]
+    "ch-rules": [
+      {id:"p1", title:"Reglas de la comunidad", body:"1) Respeto mutuo\n2) Sin spam\n3) Contenido de rope access\n4) Seguridad siempre primero", author:"Lionel", date:"2026-04-15"}
+    ],
+    "ch-news": [
+      {id:"p2", title:"RAL Community está online 🚀", body:"Bienvenidos. Acá compartimos trabajo, técnica y crecimiento profesional.", author:"Lionel", date:"2026-04-16"}
+    ],
+    "ch-talk": [
+      {id:"p3", title:"¿De dónde sos y qué certificación tenés?", body:"Comentá país, nivel IRATA/SPRAT y sector.", author:"Lionel", date:"2026-04-16"}
+    ],
+    "ch-market": [
+      {id:"p4", title:"Oferta: técnicos IRATA para NZ", body:"Proyecto de fachada en Auckland. Contacto por DM.", author:"Admin", date:"2026-04-17"}
+    ],
+    "ch-irata": [
+      {id:"p5", title:"Qué llevar al curso L1", body:"Hidratación, ropa cómoda, actitud y foco en seguridad.", author:"Mentor", date:"2026-04-18"}
+    ]
   }
 };
 
+// ---------------------------
+// Login ficticio
+// ---------------------------
 function LoginModal({ onLogin }) {
   const [name, setName] = useState("");
   const [role, setRole] = useState("guest");
+
   return (
     <div className="overlay">
-      <div className="modal">
+      <div className="modal" style={{maxWidth:520}}>
         <h2 style={{marginTop:0}}>Ingreso ficticio RAL</h2>
-        <p style={{color:"var(--muted)"}}>Entrá con un nombre para probar la comunidad.</p>
-        <div style={{display:"grid",gap:10}}>
-          <input className="input" placeholder="Tu nombre" value={name} onChange={e=>setName(e.target.value)} />
+        <p style={{color:"var(--muted)"}}>Entrá con tu nombre para probar la comunidad.</p>
+        <div style={{display:"grid", gap:10}}>
+          <input className="input" value={name} onChange={e=>setName(e.target.value)} placeholder="Tu nombre" />
           <select className="select" value={role} onChange={e=>setRole(e.target.value)}>
             <option value="guest">Guest</option>
             <option value="member">Member</option>
             <option value="admin">Admin</option>
           </select>
-          <button className="btn" onClick={()=>name.trim() && onLogin({name:name.trim(),role,testPassed:false})}>Entrar</button>
+          <button className="btn" onClick={() => name.trim() && onLogin({name:name.trim(), role, testPassed:false})}>Entrar</button>
         </div>
       </div>
     </div>
   );
 }
 
+// ---------------------------
+// Test largo (8 preguntas)
+// ---------------------------
 function TestModal({ onClose, onPass }) {
+  const questions = [
+    { id:"q1", text:"¿Te sentís cómodo trabajando en altura?", options:["Sí, me motiva","Me da respeto pero puedo","No me siento cómodo"], score:[2,1,0] },
+    { id:"q2", text:"¿Tenés experiencia en trabajos físicos/técnicos?", options:["Sí, bastante","Algo","No"], score:[2,1,0] },
+    { id:"q3", text:"¿Cómo te llevás con normas de seguridad estrictas?", options:["Las sigo al detalle","Las sigo con ayuda","Me cuesta"], score:[2,1,0] },
+    { id:"q4", text:"¿Podés trabajar en equipo y comunicarte claro?", options:["Sí, muy bien","Más o menos","Me cuesta"], score:[2,1,0] },
+    { id:"q5", text:"Compromiso para entrenar rescate y técnica:", options:["Alto","Medio","Bajo"], score:[2,1,0] },
+    { id:"q6", text:"Condición física actual:", options:["Buena","Intermedia","Baja"], score:[2,1,0] },
+    { id:"q7", text:"Manejo del estrés en contexto laboral:", options:["Bueno","Regular","Malo"], score:[2,1,0] },
+    { id:"q8", text:"Disponibilidad para curso intensivo:", options:["Total","Parcial","Muy limitada"], score:[2,1,0] }
+  ];
+
+  const [answers, setAnswers] = useState({});
+  const [submitted, setSubmitted] = useState(false);
+
+  const allAnswered = questions.every(q => answers[q.id] !== undefined);
+  const max = questions.length * 2;
+  const total = questions.reduce((acc, q) => {
+    const idx = answers[q.id];
+    return acc + (idx !== undefined ? q.score[idx] : 0);
+  }, 0);
+  const pct = Math.round((total / max) * 100);
+
+  const result = (() => {
+    if (pct >= 75) return {
+      pass:true,
+      title:"✅ Perfil recomendado",
+      text:"Tu perfil está alineado con las necesidades de la industria. Tenés buenas chances de pasar el curso de IRATA (85% de los candidatos lo pasan en el primer intento)."
+    };
+    if (pct >= 50) return {
+      pass:false,
+      title:"🟡 Perfil con potencial",
+      text:"Vas bien, pero te conviene reforzar condición física, disciplina de seguridad y entrenamiento técnico."
+    };
+    return {
+      pass:false,
+      title:"🔴 Perfil en desarrollo",
+      text:"Te recomendamos preparación previa antes de iniciar certificación."
+    };
+  })();
+
+  const submit = () => {
+    if (!allAnswered) return;
+    setSubmitted(true);
+    if (result.pass) onPass();
+  };
+
   return (
     <div className="overlay">
       <div className="modal">
-        <h3 style={{marginTop:0}}>📝 Test RAL (ficticio)</h3>
-        <p style={{color:"var(--muted)"}}>Este demo aprueba al tocar el botón.</p>
-        <div className="row" style={{justifyContent:"flex-end"}}>
-          <button className="btnGhost" onClick={onClose}>Cerrar</button>
-          <button className="btn" onClick={onPass}>Aprobar test</button>
-        </div>
+        <h3 style={{marginTop:0}}>📝 Test de perfil Rope Access</h3>
+        <p style={{color:"var(--muted)"}}>Orientativo, ficticio. Respondé todas las preguntas.</p>
+
+        {!submitted ? (
+          <div style={{display:"grid", gap:12}}>
+            {questions.map((q, i) => (
+              <div key={q.id} style={{border:"1px solid var(--border)", borderRadius:10, padding:12}}>
+                <div style={{fontWeight:600, marginBottom:8}}>{i+1}. {q.text}</div>
+                <div style={{display:"grid", gap:6}}>
+                  {q.options.map((opt, idx) => (
+                    <label key={idx} style={{display:"flex", gap:8, alignItems:"center", cursor:"pointer"}}>
+                      <input type="radio" name={q.id} checked={answers[q.id]===idx}
+                        onChange={() => setAnswers(prev => ({...prev, [q.id]: idx}))}/>
+                      <span>{opt}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            <div className="row" style={{justifyContent:"flex-end"}}>
+              <button className="btnGhost" onClick={onClose}>Cerrar</button>
+              <button className="btn" disabled={!allAnswered} onClick={submit}>Ver resultado</button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div className="ok" style={{borderColor: result.pass ? "var(--ok)" : "var(--warn)"}}>
+              <strong>{result.title}</strong>
+              <div style={{marginTop:8}}>{result.text}</div>
+              <div style={{marginTop:8, fontSize:13, opacity:.9}}>Puntaje: {total}/{max} ({pct}%)</div>
+            </div>
+            <div className="row" style={{justifyContent:"flex-end", marginTop:12}}>
+              <button className="btn" onClick={onClose}>Listo</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 function App(){
-  const [state, setState] = useState(()=>load() || seed);
-  const [activeChannelId, setActiveChannelId] = useState("ch-reglas");
+  const [db, setDb] = useState(() => load() || initialData);
+  const [activeChannelId, setActiveChannelId] = useState("ch-rules");
   const [filter, setFilter] = useState("");
   const [showTest, setShowTest] = useState(false);
 
-  const user = state.user;
-  const normalized = filter.trim().toLowerCase();
+  useEffect(() => save(db), [db]);
+
+  const user = db.user;
+  const q = filter.trim().toLowerCase();
 
   const grouped = useMemo(() => {
-    return state.categories.map(cat => {
-      const channels = state.channels
-        .filter(c => c.categoryId === cat.id)
-        .filter(c => !normalized || c.name.toLowerCase().includes(normalized));
-      return { ...cat, channels };
-    }).filter(cat => !normalized || cat.channels.length > 0);
-  }, [state.categories, state.channels, normalized]);
+    return db.categories.map(cat => {
+      const catChannels = db.channels
+        .filter(ch => ch.categoryId === cat.id)
+        .filter(ch => !q || ch.name.toLowerCase().includes(q));
+      return { ...cat, catChannels };
+    }).filter(cat => !q || cat.catChannels.length > 0);
+  }, [db.categories, db.channels, q]);
 
-  const activeChannel = state.channels.find(c=>c.id===activeChannelId);
-  const canView = !activeChannel?.private || user?.role==="admin" || user?.role==="member" || user?.testPassed;
-  const posts = state.posts[activeChannelId] || [];
+  const channel = db.channels.find(c => c.id === activeChannelId);
+  const channelPrivate = !!channel?.private || !!db.categories.find(c => c.id===channel?.categoryId)?.private;
+  const canView = !channelPrivate || user?.role==="admin" || user?.role==="member" || user?.testPassed;
+  const posts = db.posts[activeChannelId] || [];
 
-  const updateUser = (u) => {
-    const next = { ...state, user:u };
-    setState(next); save(next);
+  const login = (u) => setDb(prev => ({...prev, user:u}));
+  const logout = () => setDb(prev => ({...prev, user:null}));
+  const passTest = () => {
+    setDb(prev => {
+      const u = prev.user || {};
+      return {...prev, user:{...u, testPassed:true, role:u.role==="guest" ? "member" : u.role}};
+    });
   };
 
-  if(!user){
-    return <LoginModal onLogin={updateUser} />;
-  }
+  if(!user) return <LoginModal onLogin={login} />;
 
   return (
     <div className="app">
       <aside className="sidebar">
         <div className="brand">RAL · Rope Access Latino</div>
+
         <div className="searchWrap">
           <input className="search" placeholder="Buscar canal..." value={filter} onChange={e=>setFilter(e.target.value)} />
         </div>
-        <div className="cats">
+
+        <div className="catList">
           {grouped.map(cat => (
             <div key={cat.id}>
-              <div className="catTitle">{cat.emoji} {cat.name}</div>
-              {cat.channels.map(ch => (
-                <button key={ch.id} className={"ch " + (activeChannelId===ch.id ? "active":"")} onClick={()=>setActiveChannelId(ch.id)}>
+              <div className="catTitle">
+                {cat.emoji} {cat.name} {cat.private ? <span className="badge private">🔒 privado</span> : null}
+              </div>
+              {cat.catChannels.map(ch => (
+                <button key={ch.id}
+                  className={"channel " + (activeChannelId===ch.id ? "active" : "")}
+                  onClick={() => setActiveChannelId(ch.id)}>
                   {ch.name} {ch.private ? "🔒" : ""}
                 </button>
               ))}
@@ -167,57 +292,52 @@ function App(){
           ))}
           {grouped.length===0 && <div className="empty">Sin canales para “{filter}”.</div>}
         </div>
-        <div className="userbar">
-          {user.name} · {user.role} {user.testPassed ? "· ✅ test" : ""}
-          <div style={{marginTop:8,display:"flex",gap:8}}>
+
+        <div className="userBar">
+          <div><strong>{user.name}</strong> · {user.role} {user.testPassed ? "· ✅ test" : ""}</div>
+          <div className="row" style={{marginTop:8}}>
             {!user.testPassed && <button className="btnGhost" onClick={()=>setShowTest(true)}>Hacer test</button>}
-            <button className="btnGhost" onClick={()=>updateUser(null)}>Salir</button>
+            <button className="btnGhost" onClick={logout}>Salir</button>
           </div>
         </div>
       </aside>
 
       <main className="main">
         <div className="header">
-          <div className="title">{activeChannel?.name || "Canal"}</div>
-          <div className="desc">Comunidad demo RAL</div>
+          <div className="title">{channel?.name || "Seleccioná un canal"}</div>
+          <div className="desc">Comunidad latina de rope access</div>
         </div>
+
         <div className="content">
           {!canView ? (
-            <div className="empty">🔒 Canal privado. Hacé el test o iniciá como member/admin.</div>
-          ) : posts.length ? posts.map(p => (
-            <article className="card" key={p.id}>
-              <h3 style={{margin:"0 0 4px"}}>{p.title}</h3>
-              <div className="meta">por {p.author} · {p.date}</div>
-              <div>{p.body}</div>
-            </article>
-          )) : (
+            <div className="empty">🔒 Canal privado. Hacé el test o entrá como member/admin para ver contenido.</div>
+          ) : posts.length===0 ? (
             <div className="empty">Sin publicaciones todavía.</div>
+          ) : (
+            posts.map(p => (
+              <article className="card" key={p.id}>
+                <h3 style={{margin:"0 0 4px"}}>{p.title}</h3>
+                <div className="meta">por {p.author} · {p.date}</div>
+                <div style={{whiteSpace:"pre-wrap"}}>{p.body}</div>
+              </article>
+            ))
           )}
 
           {user.testPassed && (
             <div className="ok">
-              <strong>✅ Perfil recomendado</strong><br />
+              <strong>✅ Perfil recomendado</strong><br/>
               Tu perfil está alineado con las necesidades de la industria. Tenés buenas chances de pasar el curso de IRATA (85% de los candidatos lo pasan en el primer intento).
             </div>
           )}
         </div>
       </main>
 
-      {showTest && (
-        <TestModal
-          onClose={()=>setShowTest(false)}
-          onPass={()=>{
-            const nextUser = {...user, testPassed:true, role:user.role==="guest" ? "member" : user.role};
-            updateUser(nextUser);
-            setShowTest(false);
-          }}
-        />
-      )}
+      {showTest && <TestModal onClose={() => setShowTest(false)} onPass={passTest} />}
     </div>
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
 </script>
 </body>
 </html>
